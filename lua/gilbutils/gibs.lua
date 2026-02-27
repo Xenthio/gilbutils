@@ -106,3 +106,23 @@ function GilbUtils.Gibs.Explode(ent, dmg, opts)
 
     ent:EmitSound("common/bodysplat.wav")
 end
+
+-- Spawn a single hl1_debris_gib (TE_BREAKMODEL-style physics: slow gravity, bounce, settle).
+-- Use for breakable prop debris (crates, barrels, etc.) — NOT for combat gibs.
+-- model    — model path
+-- bodygroup — bodygroup index
+-- pos      — spawn position
+-- vel      — initial velocity
+-- lifetime — seconds before removal (default 8)
+function GilbUtils.Gibs.SpawnDebrisGib(model, bodygroup, pos, vel, lifetime)
+    local gib = ents.Create("hl1_debris_gib")
+    if not IsValid(gib) then return end
+    gib:SetModel(model)
+    gib:SetPos(pos)
+    gib.GibVel = vel or Vector(0, 0, 0)
+    gib:Spawn()
+    gib:Activate()
+    gib:SetBodygroup(0, bodygroup or 0)
+    SafeRemoveEntityDelayed(gib, lifetime or 8)
+    return gib
+end
