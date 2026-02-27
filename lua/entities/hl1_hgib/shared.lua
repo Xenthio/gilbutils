@@ -84,12 +84,22 @@ function ENT:Think()
 		self:SetAngles(ang)
 	end
 
+	-- Hard stop: if grounded and barely moving, kill velocity entirely.
+	-- This prevents infinite micro-sliding in multiplayer where network
+	-- position quantization causes GibOnGround to flicker at low speeds.
+	if self.GibOnGround and vel:Length2D() < 2 then
+		self.GibVelocity = Vector(0, 0, 0)
+		self:NextThink(CurTime())
+		return true
+	end
+
 	-- When grounded, extend trace downward so a near-zero velocity doesn't
 	-- produce a zero-length trace that misses the floor, causing GibOnGround
 	-- to flicker and the gib to glide/spin forever.
+	-- Use -8 (not -2) to account for network position quantization in multiplayer.
 	local traceEnd = pos + vel * dt
 	if self.GibOnGround then
-		traceEnd = traceEnd + Vector(0, 0, -2)
+		traceEnd = traceEnd + Vector(0, 0, -8)
 	end
 
 	local tr = util.TraceLine({
