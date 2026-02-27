@@ -1,44 +1,54 @@
 AddCSLuaFile()
 
 local ENT = {}
-ENT.Type                = "anim"
-ENT.Base                = "base_gmodentity"
-ENT.PrintName           = "HL1 Gib"
-ENT.Author              = "GilbUtils"
-ENT.Spawnable           = false
+ENT.Type                  = "anim"
+ENT.Base                  = "base_gmodentity"
+ENT.PrintName             = "HL1 Gib"
+ENT.Author                = "GilbUtils"
+ENT.Spawnable             = false
 ENT.AutomaticFrameAdvance = true
 
-local GIB_ELASTICITY  = 1 - 0.55  -- pev->friction = 0.55 → retain 0.45 per bounce
-local GIB_FRICTION    = 4
-local GIB_STOPSPEED   = 100
-local GIB_GRAVITY     = 800
+local GIB_ELASTICITY = 1 - 0.55
+local GIB_FRICTION   = 4
+local GIB_STOPSPEED  = 100
+local GIB_GRAVITY    = 800
 
 local function ClipVelocity(vel, normal, elasticity)
     local backoff = vel:Dot(normal) * (1 + elasticity)
     return vel - normal * backoff
 end
 
+function ENT:SetupDataTables()
+    self:NetworkVar("Int",    0, "GibBodygroup")
+    self:NetworkVar("Int",    1, "GibBloodColor")
+    self:NetworkVar("String", 0, "GibModel")
+end
+
 function ENT:Initialize()
-    self:SetModel(self:GetNWString("GibModel", "models/gibs/hghl1.mdl"))
-    self:SetCollisionBounds(Vector(0, 0, 0), Vector(0, 0, 0))
+    -- Model is set by the spawner via :SetGibModel() BEFORE Spawn(),
+    -- so by Initialize() the NW string is already set server-side.
+    -- Client receives the correct model via the entity baseline.
+    local model = self:GetGibModel()
+    if model == "" then model = "models/gibs/hghl1.mdl" end
+    self:SetModel(model)
 
-    if CLIENT then return end
+    if SERVER then
+        self:SetBodygroup(0, self:GetGibBodygroup())
+        self:SetMoveType(MOVETYPE_CUSTOM)
+        self:SetSolid(SOLID_BBOX)
+        self:AddSolidFlags(FSOLID_NOT_STANDABLE)
+        self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
 
-    self:SetBodygroup(0, self:GetNWInt("GibBodygroup", 0))
-    self:SetMoveType(MOVETYPE_CUSTOM)
-    self:SetSolid(SOLID_BBOX)
-    self:AddSolidFlags(FSOLID_NOT_STANDABLE)
-    self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+        self.GibVelocity      = Vector(0, 0, 0)
+        self.AngVelocity      = Angle(math.Rand(100, 200), math.Rand(100, 300), 0)
+        self.GibOnGround      = false
+        self.BloodDecalsLeft  = 5
+        self.BloodColor       = self:GetGibBloodColor()
+        self.LifeTime         = 25
+        self.WaitTillLandTime = CurTime() + 4
 
-    self.GibVelocity     = Vector(0, 0, 0)
-    self.AngVelocity     = Angle(math.Rand(100, 200), math.Rand(100, 300), 0)
-    self.GibOnGround     = false
-    self.BloodDecalsLeft = 5
-    self.BloodColor      = self:GetNWInt("GibBloodColor", BLOOD_COLOR_RED)
-    self.LifeTime        = 25
-    self.WaitTillLandTime = CurTime() + 4
-
-    self:NextThink(CurTime())
+        self:NextThink(CurTime())
+    end
 end
 
 function ENT:Think()

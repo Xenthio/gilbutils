@@ -18,9 +18,11 @@ if CLIENT then return end  -- all gib spawning is serverside
 local function SpawnGib(model, bodygroup, pos, vel, bloodColor)
     local gib = ents.Create("hl1_hgib")
     if not IsValid(gib) then return end
-    gib:SetNWString("GibModel", model or "models/gibs/hghl1.mdl")
-    gib:SetNWInt("GibBodygroup", bodygroup or 0)
-    gib:SetNWInt("GibBloodColor", bloodColor or BLOOD_COLOR_RED)
+    -- Set NetworkVars BEFORE Spawn() so they're in the entity baseline
+    -- and the client reads the correct model in Initialize()
+    gib:SetGibModel(model or "models/gibs/hghl1.mdl")
+    gib:SetGibBodygroup(bodygroup or 0)
+    gib:SetGibBloodColor(bloodColor or BLOOD_COLOR_RED)
     gib:SetPos(pos)
     gib:Spawn()
     gib:Activate()
