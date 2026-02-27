@@ -125,7 +125,11 @@ function ENT:Think()
 
 		vel = ClipVelocity(vel, normal, GIB_ELASTICITY)
 
-		if isFloor and vel.z < 0 then
+		if self.GibOnGround and isFloor then
+			-- Already grounded and still on a floor — stay grounded, no bounce
+			vel.z = 0
+			self.GibOnGround = true
+		elseif isFloor and vel.z < 0 then
 			if math.abs(vel.z) < 60 then
 				vel.z = 0
 				self.GibOnGround = true
