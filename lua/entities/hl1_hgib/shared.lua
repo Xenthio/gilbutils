@@ -59,6 +59,7 @@ function ENT:Think()
 	local vel = self.GibVelocity
 
 	if self.GibOnGround then
+		-- Apply ground friction
 		local speed = vel:Length2D()
 		if speed > 0 then
 			local control  = math.max(speed, GIB_STOPSPEED)
@@ -68,43 +69,50 @@ function ENT:Think()
 			vel.y = vel.y * scale
 		end
 		vel.z = 0
-
-		-- CRITICAL: zero AngVelocity permanently on landing.
-		-- GibOnGround can flicker when vel~0 causes trace to miss,
-		-- so AngVelocity must be cleared here or the gib will spin on the floor.
+		self.AngVelocity = Angle(0, 0, 0)
 		local ang = self:GetAngles()
 		ang.p = 0; ang.r = 0
 		self:SetAngles(ang)
-		self.AngVelocity = Angle(0, 0, 0)
-	else
-		vel.z = vel.z - GIB_GRAVITY * dt
 
-		local ang = self:GetAngles()
-		ang:Add(self.AngVelocity * dt)
-		self:SetAngles(ang)
-	end
+		-- Hard stop
+		if vel:Length2D() < 2 then
+			self.GibVelocity = Vector(0, 0, 0)
+			self:NextThink(CurTime())
+			return true
+		end
 
-	-- Hard stop: if grounded and barely moving, kill velocity entirely.
-	-- This prevents infinite micro-sliding in multiplayer where network
-	-- position quantization causes GibOnGround to flicker at low speeds.
-	if self.GibOnGround and vel:Length2D() < 2 then
-		self.GibVelocity = Vector(0, 0, 0)
+		-- Grounded: only do a horizontal movement trace, no falling
+		-- Do NOT set GibOnGround = false if trace misses — we're on the ground
+		local tr = util.TraceLine({
+			start  = pos,
+			endpos = pos + vel * dt,
+			filter = self,
+			mask   = MASK_SOLID,
+		})
+
+		if tr.Hit then
+			-- Hit a wall/step while sliding — stop horizontal movement
+			vel.x = 0
+			vel.y = 0
+			self:SetPos(tr.HitPos + tr.HitNormal * 0.1)
+		else
+			self:SetPos(pos + vel * dt)
+		end
+
+		self.GibVelocity = vel
 		self:NextThink(CurTime())
 		return true
 	end
 
-	-- When grounded, extend trace downward so a near-zero velocity doesn't
-	-- produce a zero-length trace that misses the floor, causing GibOnGround
-	-- to flicker and the gib to glide/spin forever.
-	-- Use -8 (not -2) to account for network position quantization in multiplayer.
-	local traceEnd = pos + vel * dt
-	if self.GibOnGround then
-		traceEnd = traceEnd + Vector(0, 0, -8)
-	end
+	-- Airborne: gravity + tumble
+	vel.z = vel.z - GIB_GRAVITY * dt
+	local ang = self:GetAngles()
+	ang:Add(self.AngVelocity * dt)
+	self:SetAngles(ang)
 
 	local tr = util.TraceLine({
 		start  = pos,
-		endpos = traceEnd,
+		endpos = pos + vel * dt,
 		filter = self,
 		mask   = MASK_SOLID,
 	})
@@ -113,7 +121,7 @@ function ENT:Think()
 		local normal  = tr.HitNormal
 		local isFloor = normal.z > 0.7
 
-		if not self.GibOnGround and self.BloodDecalsLeft > 0 and self.BloodColor ~= DONT_BLEED then
+		if self.BloodDecalsLeft > 0 and self.BloodColor ~= DONT_BLEED then
 			local decal = (self.BloodColor == BLOOD_COLOR_YELLOW) and "YellowBlood" or "Blood"
 			util.Decal(decal, tr.HitPos + normal, tr.HitPos - normal)
 			self.BloodDecalsLeft = self.BloodDecalsLeft - 1
@@ -125,25 +133,17 @@ function ENT:Think()
 
 		vel = ClipVelocity(vel, normal, GIB_ELASTICITY)
 
-		if self.GibOnGround and isFloor then
-			-- Already grounded and still on a floor — stay grounded, no bounce
-			vel.z = 0
-			self.GibOnGround = true
-		elseif isFloor and vel.z < 0 then
+		if isFloor then
 			if math.abs(vel.z) < 60 then
 				vel.z = 0
 				self.GibOnGround = true
-			else
-				self.GibOnGround = false
 			end
-		else
-			self.GibOnGround = false
+			-- else: big bounce, stay airborne
 		end
+		-- wall hit: stay airborne, just deflected
 
 		self:SetPos(tr.HitPos + normal * 0.1)
 	else
-		self.GibOnGround = false
-		-- Only move by vel*dt, not the full traceEnd (which may include downward bias)
 		self:SetPos(pos + vel * dt)
 	end
 
