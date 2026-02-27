@@ -13,6 +13,8 @@
 GilbUtils = GilbUtils or {}
 GilbUtils.Gibs = GilbUtils.Gibs or {}
 
+if CLIENT then return end  -- all gib spawning is serverside
+
 local function SpawnGib(model, bodygroup, pos, vel, bloodColor)
     local gib = ents.Create("hl1_hgib")
     if not IsValid(gib) then return end
@@ -67,7 +69,7 @@ function GilbUtils.Gibs.Explode(ent, dmg, opts)
 
     -- Head gib: spawns at EyePos, 5% chance thrown toward nearest player
     if spawnHead then
-        local headPos = ent:EyePos and ent:EyePos() or (ent:GetPos() + Vector(0, 0, 64))
+        local headPos = (ent.EyePos and ent:EyePos()) or (ent:GetPos() + Vector(0, 0, 64))
         local vel
         local ply = player.GetAll()[1]
         if ply and math.random(1, 100) <= 5 then
