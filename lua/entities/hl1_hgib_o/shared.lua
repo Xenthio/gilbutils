@@ -6,13 +6,15 @@ ENT.Spawnable             = false
 ENT.AutomaticFrameAdvance = true
 
 -- MOVETYPE_FLYGRAVITY + MOVECOLLIDE_FLY_CUSTOM
--- Engine owns gravity + position sweep. Touch() owns all velocity changes.
--- Self-track GibVelocity because GetAbsVelocity() inside Touch() is post-resolution.
--- Think() syncs from engine each airborne frame to capture gravity accumulation.
+-- Engine owns gravity + position sweep. Touch() owns velocity on collision.
+-- Touch fires every frame while in contact, so we debounce it — ClipVelocity
+-- applies once per contact sequence, not once per frame.
+-- Grounded friction is time-based in Think(), not per-Touch.
 
-local ELASTICITY = 0.45   -- HL1: pev->friction=0.55 → restitution=0.45
-local STOPSPEED  = 30     -- matches Source engine (speed < 30 → full stop)
-local FRICTION   = 0.9    -- per-grounded-Touch multiplier (HL1 BounceGibTouch: vel *= 0.9)
+local ELASTICITY   = 0.45   -- HL1: pev->friction=0.55 → restitution=0.45
+local STOPSPEED    = 30     -- speed < 30 → full stop (matches Source engine)
+local FRICTION     = 4      -- deceleration rate (units/s²-ish, same as hl1_hgib)
+local TOUCH_WINDOW = 0.05   -- seconds before we allow another ClipVelocity (debounce)
 
 local function ClipVelocity(vel, normal)
 	return vel - normal * (vel:Dot(normal) * (1 + ELASTICITY))
@@ -41,6 +43,7 @@ function ENT:Initialize()
 	self.BloodDecalsLeft = 5
 	self.BloodColor      = BLOOD_COLOR_RED
 	self.LifeTime        = 25
+	self._lastTouch      = 0
 
 	-- Defer so spawner can set GibVelocity after Activate()
 	self:NextThink(CurTime() + engine.TickInterval())
@@ -49,20 +52,19 @@ end
 function ENT:Touch(ent)
 	if CLIENT then return end
 
+	-- Debounce: only process one ClipVelocity per contact sequence
+	local now = CurTime()
+	if now - self._lastTouch < TOUCH_WINDOW then return end
+	self._lastTouch = now
+
 	local pos    = self:GetPos()
 	local tr     = util.TraceLine({ start = pos + Vector(0,0,4), endpos = pos - Vector(0,0,12), filter = self, mask = MASK_SOLID })
 	local normal = tr.Hit and tr.HitNormal or Vector(0, 0, 1)
 	local isFloor = normal.z > 0.7
 
-	if self.GibOnGround then
-		local vel = self.GibVelocity * FRICTION
-		vel.z = 0
-		self.GibVelocity = vel
-		self:SetAbsVelocity(vel)
-		return
-	end
+	if self.GibOnGround then return end  -- friction handled in Think
 
-	-- Blood decal on airborne bounce
+	-- Blood decal
 	if self.BloodDecalsLeft > 0 and self.BloodColor ~= DONT_BLEED then
 		local decal = (self.BloodColor == BLOOD_COLOR_YELLOW) and "YellowBlood" or "Blood"
 		util.Decal(decal, pos + normal, pos - normal)
@@ -98,13 +100,29 @@ function ENT:Think()
 		return true
 	end
 
+	local dt = FrameTime()
+
 	if not self.GibOnGround then
-		self.GibVelocity = self:GetAbsVelocity()  -- sync gravity accumulation
-	elseif self.GibVelocity:Length2D() < STOPSPEED then
-		self:SetAbsVelocity(Vector(0,0,0))
-		self:SetMoveType(MOVETYPE_NONE)
-		SafeRemoveEntityDelayed(self, self.LifeTime)
-		return
+		-- Sync so GibVelocity stays accurate as gravity accumulates
+		self.GibVelocity = self:GetAbsVelocity()
+	else
+		-- Time-based friction on ground
+		local vel   = self.GibVelocity
+		local speed = vel:Length2D()
+
+		if speed < STOPSPEED then
+			self:SetAbsVelocity(Vector(0, 0, 0))
+			self:SetMoveType(MOVETYPE_NONE)
+			SafeRemoveEntityDelayed(self, self.LifeTime)
+			return
+		end
+
+		local control  = math.max(speed, 100)  -- HL1 sv_stopspeed = 100
+		local newspeed = math.max(0, speed - control * FRICTION * dt)
+		local scale    = newspeed / speed
+		local newVel   = Vector(vel.x * scale, vel.y * scale, 0)
+		self.GibVelocity = newVel
+		self:SetAbsVelocity(newVel)
 	end
 
 	self:NextThink(CurTime())
