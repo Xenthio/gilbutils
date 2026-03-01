@@ -6,9 +6,10 @@ ENT.Spawnable             = false
 ENT.AutomaticFrameAdvance = true
 
 -- MOVETYPE_FLYGRAVITY + MOVECOLLIDE_FLY_CUSTOM
--- Engine owns gravity + position sweep. Touch() fires once per contact event.
--- Self-track GibVelocity: GetAbsVelocity() in Touch() is post-engine-resolution.
--- Normal is found by tracing in velocity direction — not downward (which fails for walls).
+-- Engine owns gravity + position sweep, stops entity at collision point.
+-- Touch() captures collision info only — does NOT set velocity.
+-- Think() applies the bounce on the next frame, outside of PhysicsToss,
+-- so ResolveFlyCollisionCustom can't zero our bounce velocity afterward.
 
 local ELASTICITY = 0.45
 local STOPSPEED  = 30
@@ -29,6 +30,7 @@ function ENT:Initialize()
 	self.BloodDecalsLeft = 5
 	self.BloodColor      = BLOOD_COLOR_RED
 	self.LifeTime        = 25
+	self._bounceNormal   = nil  -- set by Touch(), consumed by Think()
 
 	if CLIENT then return end
 
@@ -47,43 +49,22 @@ end
 function ENT:Touch(ent)
 	if CLIENT then return end
 	if self.GibOnGround then return end
+	if self._bounceNormal then return end  -- already pending, wait for Think to consume
 
-	-- Trace in velocity direction to get actual collision surface normal
 	local vel = self.GibVelocity
-	local pos = self:GetPos()
+	if vel:LengthSqr() < 1 then return end
+
+	-- Trace in velocity direction to find surface normal
 	local dir = vel:GetNormalized()
+	local pos = self:GetPos()
 	local tr  = util.TraceLine({ start = pos - dir * 2, endpos = pos + dir * 8, filter = self, mask = MASK_SOLID })
-	local normal  = tr.Hit and tr.HitNormal or -dir
-	local isFloor = normal.z > 0.7
-
-	-- Blood decal
-	if self.BloodDecalsLeft > 0 and self.BloodColor ~= DONT_BLEED then
-		local decal = (self.BloodColor == BLOOD_COLOR_YELLOW) and "YellowBlood" or "Blood"
-		util.Decal(decal, pos + normal, pos - normal)
-		self.BloodDecalsLeft = self.BloodDecalsLeft - 1
-		if math.random(0, 2) == 0 then
-			self:EmitSound("debris/flesh" .. math.random(1, 7) .. ".wav", 75, 100,
-				0.8 * math.min(1.0, math.abs(vel.z) / 450.0))
-		end
-	end
-
-	local newVel = ClipVelocity(vel, normal)
-
-	if isFloor and math.abs(newVel.z) < 60 then
-		newVel.z = 0
-		self.GibOnGround = true
-		self:SetLocalAngularVelocity(Angle(0, 0, 0))
-		local ang = self:GetAngles(); ang.p = 0; ang.r = 0; self:SetAngles(ang)
-		self:SetGravity(0)
-	end
-
-	self.GibVelocity = newVel
-	self:SetAbsVelocity(newVel)
+	self._bounceNormal = tr.Hit and tr.HitNormal or -dir
 end
 
 function ENT:Think()
 	if CLIENT then self:NextThink(CurTime()) return true end
 
+	-- First tick: push externally-set GibVelocity into engine
 	if not self._ready then
 		self._ready = true
 		self:SetAbsVelocity(self.GibVelocity)
@@ -91,7 +72,43 @@ function ENT:Think()
 		return true
 	end
 
+	-- Apply pending bounce (set by Touch, consumed here outside PhysicsToss)
+	if self._bounceNormal then
+		local normal  = self._bounceNormal
+		local vel     = self.GibVelocity
+		self._bounceNormal = nil
+
+		local newVel  = ClipVelocity(vel, normal)
+		local isFloor = normal.z > 0.7
+
+		-- Blood decal
+		if self.BloodDecalsLeft > 0 and self.BloodColor ~= DONT_BLEED then
+			local pos   = self:GetPos()
+			local decal = (self.BloodColor == BLOOD_COLOR_YELLOW) and "YellowBlood" or "Blood"
+			util.Decal(decal, pos + normal, pos - normal)
+			self.BloodDecalsLeft = self.BloodDecalsLeft - 1
+			if math.random(0, 2) == 0 then
+				self:EmitSound("debris/flesh" .. math.random(1, 7) .. ".wav", 75, 100,
+					0.8 * math.min(1.0, math.abs(vel.z) / 450.0))
+			end
+		end
+
+		if isFloor and math.abs(newVel.z) < 60 then
+			newVel.z = 0
+			self.GibOnGround = true
+			self:SetLocalAngularVelocity(Angle(0, 0, 0))
+			local ang = self:GetAngles(); ang.p = 0; ang.r = 0; self:SetAngles(ang)
+			self:SetGravity(0)
+		end
+
+		self.GibVelocity = newVel
+		self:SetAbsVelocity(newVel)
+		self:NextThink(CurTime())
+		return true
+	end
+
 	if not self.GibOnGround then
+		-- Sync so GibVelocity stays accurate as gravity accumulates
 		self.GibVelocity = self:GetAbsVelocity()
 	else
 		local vel   = self.GibVelocity
