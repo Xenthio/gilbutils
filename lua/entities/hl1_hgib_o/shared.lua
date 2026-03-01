@@ -101,7 +101,7 @@ function ENT:Think()
 	if not self.GibOnGround then
 		self.GibVelocity = self:GetAbsVelocity()  -- sync gravity accumulation
 	elseif self.GibVelocity:Length2D() < STOPSPEED then
-		self:SetAbsVelocity(vec3_origin)
+		self:SetAbsVelocity(Vector(0,0,0))
 		self:SetMoveType(MOVETYPE_NONE)
 		SafeRemoveEntityDelayed(self, self.LifeTime)
 		return
