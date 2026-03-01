@@ -60,8 +60,8 @@ local function FireGib(ent_class, swep)
 		gib.BloodColor  = BLOOD_COLOR_RED
 
 		-- hl1_hgib_o reads GibVelocity in Think's first sync; set AbsVelocity directly too
-		if gib.SetAbsVelocity then
-			gib:SetAbsVelocity(vel)
+		if gib.SetVelocity then
+			gib:SetVelocity(vel)
 		end
 	end
 end
