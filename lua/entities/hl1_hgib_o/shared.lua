@@ -42,9 +42,10 @@ function ENT:Touch(ent)
 
 	local pos = self:GetPos()
 	local tr  = util.TraceLine({ start = pos + Vector(0,0,4), endpos = pos - Vector(0,0,10), filter = self, mask = MASK_SOLID })
-	local onGround = tr.Hit and tr.HitNormal.z > 0.7
+	local nearFloor = tr.Hit and tr.HitNormal.z > 0.7
+	self._groundFrames = nearFloor and (self._groundFrames or 0) + 1 or 0
 
-	if onGround then
+	if self._groundFrames >= 2 then
 		-- Grounded: bleed speed (HL1 BounceGibTouch: vel *= 0.9)
 		local vel = self:GetAbsVelocity() * 0.9
 		vel.z = 0
