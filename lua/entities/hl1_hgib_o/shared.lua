@@ -8,11 +8,11 @@ ENT.AutomaticFrameAdvance = true
 -- MOVETYPE_FLYGRAVITY + MOVECOLLIDE_FLY_CUSTOM
 -- Engine owns gravity + position sweep. Touch() fires once per contact event.
 -- Self-track GibVelocity: GetAbsVelocity() in Touch() is post-engine-resolution.
--- Think() syncs from engine while airborne to capture gravity, handles friction when grounded.
+-- Normal is found by tracing in velocity direction — not downward (which fails for walls).
 
-local ELASTICITY = 0.45   -- HL1: pev->friction=0.55 → restitution=0.45
-local STOPSPEED  = 30     -- speed < 30 → full stop
-local FRICTION   = 4      -- ground decel rate (HL1 sv_friction)
+local ELASTICITY = 0.45
+local STOPSPEED  = 30
+local FRICTION   = 4
 
 local function ClipVelocity(vel, normal)
 	return vel - normal * (vel:Dot(normal) * (1 + ELASTICITY))
@@ -41,17 +41,19 @@ function ENT:Initialize()
 	self:SetGravity(800 / 600)
 	self:SetLocalAngularVelocity(Angle(math.Rand(100, 200), math.Rand(100, 300), 0))
 
-	-- Defer so spawner can set GibVelocity after Activate()
 	self:NextThink(CurTime() + engine.TickInterval())
 end
 
 function ENT:Touch(ent)
 	if CLIENT then return end
-	if self.GibOnGround then return end  -- friction handled in Think
+	if self.GibOnGround then return end
 
-	local pos    = self:GetPos()
-	local tr     = util.TraceLine({ start = pos + Vector(0,0,4), endpos = pos - Vector(0,0,12), filter = self, mask = MASK_SOLID })
-	local normal = tr.Hit and tr.HitNormal or Vector(0, 0, 1)
+	-- Trace in velocity direction to get actual collision surface normal
+	local vel = self.GibVelocity
+	local pos = self:GetPos()
+	local dir = vel:GetNormalized()
+	local tr  = util.TraceLine({ start = pos - dir * 2, endpos = pos + dir * 8, filter = self, mask = MASK_SOLID })
+	local normal  = tr.Hit and tr.HitNormal or -dir
 	local isFloor = normal.z > 0.7
 
 	-- Blood decal
@@ -61,11 +63,11 @@ function ENT:Touch(ent)
 		self.BloodDecalsLeft = self.BloodDecalsLeft - 1
 		if math.random(0, 2) == 0 then
 			self:EmitSound("debris/flesh" .. math.random(1, 7) .. ".wav", 75, 100,
-				0.8 * math.min(1.0, math.abs(self.GibVelocity.z) / 450.0))
+				0.8 * math.min(1.0, math.abs(vel.z) / 450.0))
 		end
 	end
 
-	local newVel = ClipVelocity(self.GibVelocity, normal)
+	local newVel = ClipVelocity(vel, normal)
 
 	if isFloor and math.abs(newVel.z) < 60 then
 		newVel.z = 0
@@ -82,7 +84,6 @@ end
 function ENT:Think()
 	if CLIENT then self:NextThink(CurTime()) return true end
 
-	-- First tick: push externally-set GibVelocity into engine
 	if not self._ready then
 		self._ready = true
 		self:SetAbsVelocity(self.GibVelocity)
