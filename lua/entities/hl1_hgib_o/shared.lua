@@ -5,20 +5,11 @@ ENT.Author                = "GilbUtils"
 ENT.Spawnable             = false
 ENT.AutomaticFrameAdvance = true
 
--- MOVETYPE_FLYGRAVITY + MOVECOLLIDE_FLY_CUSTOM
--- Touch() fires before ResolveFlyCollisionCustom. With FLY_CUSTOM, the engine
--- only zeros velocity on floor+speed<30 (our settle case). All other cases:
--- our SetAbsVelocity in Touch() sticks. So we bounce directly in Touch() using
--- GetAbsVelocity() which is still the pre-collision value at that point.
--- Think() only handles grounded friction.
-
-local ELASTICITY  = 0.45
-local STOPSPEED   = 100
-local FRICTION    = 4
-
-local function ClipVelocity(vel, normal)
-	return vel - normal * (vel:Dot(normal) * (1 + ELASTICITY))
-end
+-- Mirrors HL1 CGib exactly:
+--   MOVETYPE_FLYGRAVITY + MOVECOLLIDE_DEFAULT → engine handles bounce via SetElasticity
+--   Touch fires every frame while in contact (MOVECOLLIDE_DEFAULT behaviour)
+--   Touch handles: blood decals on airborne bounce, vel*=0.9 when grounded (FL_ONGROUND)
+--   SetElasticity(0.45) = HL1 pev->friction=0.55 → backoff=1.45 → restitution=0.45
 
 function ENT:Initialize()
 	local model = self:GetNWString("GibModel", "models/gibs/hghl1.mdl")
@@ -26,21 +17,21 @@ function ENT:Initialize()
 	self:SetModel(model)
 	self:SetCollisionBounds(Vector(0, 0, 0), Vector(0, 0, 0))
 
-	self.GibVelocity     = Vector(0, 0, 0)
-	self.GibOnGround     = false
 	self.BloodDecalsLeft = 5
 	self.BloodColor      = BLOOD_COLOR_RED
+	self.GibVelocity     = Vector(0, 0, 0)  -- used only for initial push
 	self.LifeTime        = 25
 
 	if CLIENT then return end
 
 	self:SetBodygroup(0, self:GetNWInt("GibBodygroup", 0))
 	self:SetMoveType(MOVETYPE_FLYGRAVITY)
-	self:SetMoveCollide(MOVECOLLIDE_FLY_CUSTOM)
+	self:SetMoveCollide(MOVECOLLIDE_DEFAULT)
 	self:SetSolid(SOLID_BBOX)
 	self:AddSolidFlags(FSOLID_NOT_STANDABLE)
 	self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
 	self:SetGravity(800 / 600)
+	self:SetElasticity(0.45)
 	self:SetLocalAngularVelocity(Angle(math.Rand(100, 200), math.Rand(100, 300), 0))
 
 	self:NextThink(CurTime() + engine.TickInterval())
@@ -48,77 +39,50 @@ end
 
 function ENT:Touch(ent)
 	if CLIENT then return end
-	if self.GibOnGround then return end
 
-	-- GetAbsVelocity() here is pre-collision (Touch fires before ResolveFlyCollisionCustom)
-	local vel = self:GetAbsVelocity()
-	if vel:LengthSqr() < 1 then return end
+	if self:GetFlags() & FL_ONGROUND ~= 0 then
+		-- Grounded: bleed speed (HL1 BounceGibTouch: vel *= 0.9)
+		local vel = self:GetAbsVelocity() * 0.9
+		vel.z = 0
+		self:SetAbsVelocity(vel)
 
-	-- Find surface normal by tracing in velocity direction
-	local dir = vel:GetNormalized()
-	local pos = self:GetPos()
-	local tr  = util.TraceLine({ start = pos - dir * 2, endpos = pos + dir * 8, filter = self, mask = MASK_SOLID })
-	local normal  = tr.Hit and tr.HitNormal or -dir
-	local isFloor = normal.z > 0.7
-
-	-- Blood decal
-	if self.BloodDecalsLeft > 0 and self.BloodColor ~= DONT_BLEED then
-		local decal = (self.BloodColor == BLOOD_COLOR_YELLOW) and "YellowBlood" or "Blood"
-		util.Decal(decal, pos + normal, pos - normal)
-		self.BloodDecalsLeft = self.BloodDecalsLeft - 1
-		if math.random(0, 2) == 0 then
-			self:EmitSound("debris/flesh" .. math.random(1, 7) .. ".wav", 75, 100,
-				0.8 * math.min(1.0, math.abs(vel.z) / 450.0))
-		end
-	end
-
-	local newVel = ClipVelocity(vel, normal)
-
-	if isFloor and math.abs(newVel.z) < 60 then
-		newVel.z = 0
-		self.GibVelocity = newVel
-		self.GibOnGround = true
+		-- Flatten rotation
 		self:SetLocalAngularVelocity(Angle(0, 0, 0))
 		local ang = self:GetAngles(); ang.p = 0; ang.r = 0; self:SetAngles(ang)
-		self:SetGravity(0)
-	else
-		self.GibVelocity = newVel
+
+		if vel:Length2D() < 2 then
+			self:SetAbsVelocity(Vector(0, 0, 0))
+			self:SetMoveType(MOVETYPE_NONE)
+			SafeRemoveEntityDelayed(self, self.LifeTime)
+		end
+		return
 	end
 
-	self:SetPos(self:GetPos() + normal * 0.5)
-	self:SetAbsVelocity(newVel)
+	-- Airborne bounce: blood decal + sound
+	if self.BloodDecalsLeft > 0 and self.BloodColor ~= DONT_BLEED then
+		local pos = self:GetPos()
+		local vel = self:GetAbsVelocity()
+		local tr  = util.TraceLine({ start = pos + Vector(0,0,8), endpos = pos - Vector(0,0,24), filter = self, mask = MASK_SOLID })
+		if tr.Hit then
+			local decal = (self.BloodColor == BLOOD_COLOR_YELLOW) and "YellowBlood" or "Blood"
+			util.Decal(decal, tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal)
+			self.BloodDecalsLeft = self.BloodDecalsLeft - 1
+			if math.random(0, 2) == 0 then
+				self:EmitSound("debris/flesh" .. math.random(1, 7) .. ".wav", 75, 100,
+					0.8 * math.min(1.0, math.abs(vel.z) / 450.0))
+			end
+		end
+	end
 end
 
 function ENT:Think()
 	if CLIENT then self:NextThink(CurTime()) return true end
 
-	-- First tick: push externally-set GibVelocity into engine
+	-- First tick: push initial velocity
 	if not self._ready then
 		self._ready = true
 		self:SetAbsVelocity(self.GibVelocity)
-		self:NextThink(CurTime())
-		return true
 	end
-
-	if not self.GibOnGround then
-		self:NextThink(CurTime())
-		return true
-	end
-
-	-- Grounded friction
-	local vel   = self.GibVelocity
-	local speed = vel:Length2D()
-	if speed < 2 then
-		self:SetAbsVelocity(Vector(0, 0, 0))
-		self:SetMoveType(MOVETYPE_NONE)
-		SafeRemoveEntityDelayed(self, self.LifeTime)
-		return
-	end
-
-	local newspeed = math.max(0, speed - math.max(speed, STOPSPEED) * FRICTION * FrameTime())
-	local newVel   = Vector(vel.x * (newspeed / speed), vel.y * (newspeed / speed), 0)
-	self.GibVelocity = newVel
-	self:SetAbsVelocity(newVel)
 
 	self:NextThink(CurTime())
 	return true
