@@ -5,11 +5,13 @@ ENT.Author                = "GilbUtils"
 ENT.Spawnable             = false
 ENT.AutomaticFrameAdvance = true
 
--- MOVETYPE_FLYGRAVITY + MOVECOLLIDE_DEFAULT
--- DEFAULT calls Touch every frame while in contact (unlike FLY_CUSTOM).
--- Engine does a slide (backoff=1) after Touch, but we override velocity in Touch
--- with our own ClipVelocity bounce before the engine resolves.
--- Grounded state tracked from hit normal — IsOnGround() unreliable for FLYGRAVITY.
+-- MOVETYPE_FLYGRAVITY + MOVECOLLIDE_FLY_CUSTOM
+-- Order per PhysicsToss: Think → PhysicsPushEntity (calls Touch) → PerformFlyCollisionResolution
+-- FLY_CUSTOM: ResolveFlyCollisionCustom does nothing to velocity — our Touch SetAbsVelocity sticks.
+-- DEFAULT: ResolveFlyCollisionSlide runs after Touch and overwrites our velocity. WRONG.
+-- Touch fires once per sweep (not continuously) — that's fine for bouncing.
+-- SetPos out of surface in Touch so next sweep doesn't immediately re-hit.
+-- Grounded: switch to MOVETYPE_NONE and handle friction in Think manually.
 
 local ELASTICITY = 0.45
 local STOPSPEED  = 100
@@ -35,7 +37,7 @@ function ENT:Initialize()
 
 	self:SetBodygroup(0, self:GetNWInt("GibBodygroup", 0))
 	self:SetMoveType(MOVETYPE_FLYGRAVITY)
-	self:SetMoveCollide(MOVECOLLIDE_DEFAULT)
+	self:SetMoveCollide(MOVECOLLIDE_FLY_CUSTOM)
 	self:SetSolid(SOLID_BBOX)
 	self:AddSolidFlags(FSOLID_NOT_STANDABLE)
 	self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
@@ -47,22 +49,18 @@ end
 
 function ENT:Touch(ent)
 	if CLIENT then return end
+	if self.GibOnGround then return end
 
-	local vel    = self:GetAbsVelocity()
-	local pos    = self:GetPos()
+	local vel = self:GetAbsVelocity()
+	if vel:LengthSqr() < 1 then return end
+
 	local dir    = vel:GetNormalized()
+	local pos    = self:GetPos()
 	local tr     = util.TraceLine({ start = pos - dir * 2, endpos = pos + dir * 8, filter = self, mask = MASK_SOLID })
 	local normal = tr.Hit and tr.HitNormal or -dir
 	local isFloor = normal.z > 0.7
 
-	if self.GibOnGround then
-		-- Friction handled in Think; just keep flat
-		vel.z = 0
-		self:SetAbsVelocity(vel)
-		return
-	end
-
-	-- Blood decal on airborne contact
+	-- Blood decal
 	if self.BloodDecalsLeft > 0 and self.BloodColor ~= DONT_BLEED then
 		local decal = (self.BloodColor == BLOOD_COLOR_YELLOW) and "YellowBlood" or "Blood"
 		util.Decal(decal, pos + normal, pos - normal)
@@ -75,12 +73,17 @@ function ENT:Touch(ent)
 
 	local newVel = ClipVelocity(vel, normal)
 
+	-- Push out of surface so next sweep doesn't immediately re-trigger Touch
+	self:SetPos(pos + normal * 1)
+
 	if isFloor and math.abs(newVel.z) < 60 then
 		newVel.z = 0
 		self.GibOnGround = true
 		self.GibVelocity = newVel
 		self:SetLocalAngularVelocity(Angle(0, 0, 0))
 		local ang = self:GetAngles(); ang.p = 0; ang.r = 0; self:SetAngles(ang)
+		-- Switch to NONE so engine stops moving us; Think drives friction
+		self:SetMoveType(MOVETYPE_NONE)
 		self:SetGravity(0)
 	else
 		self.GibVelocity = newVel
@@ -104,12 +107,11 @@ function ENT:Think()
 		return true
 	end
 
-	-- Grounded friction
+	-- Grounded: manual friction since engine no longer moves us
 	local vel   = self.GibVelocity
 	local speed = vel:Length2D()
 	if speed < 2 then
 		self:SetAbsVelocity(Vector(0, 0, 0))
-		self:SetMoveType(MOVETYPE_NONE)
 		SafeRemoveEntityDelayed(self, self.LifeTime)
 		return
 	end
@@ -117,7 +119,7 @@ function ENT:Think()
 	local newspeed = math.max(0, speed - math.max(speed, STOPSPEED) * FRICTION * FrameTime())
 	local newVel   = Vector(vel.x * (newspeed / speed), vel.y * (newspeed / speed), 0)
 	self.GibVelocity = newVel
-	self:SetAbsVelocity(newVel)
+	self:SetPos(self:GetPos() + newVel * FrameTime())
 
 	self:NextThink(CurTime())
 	return true
