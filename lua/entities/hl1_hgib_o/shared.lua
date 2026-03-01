@@ -85,6 +85,7 @@ function ENT:Touch(ent)
 		self.GibVelocity = newVel
 	end
 
+	self:SetPos(self:GetPos() + normal * 0.5)
 	self:SetAbsVelocity(newVel)
 end
 
