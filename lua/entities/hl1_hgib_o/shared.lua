@@ -5,14 +5,20 @@ ENT.Author                = "GilbUtils"
 ENT.Spawnable             = false
 ENT.AutomaticFrameAdvance = true
 
--- hl1_hgib_o: behaviorally identical to hl1_hgib but uses engine movement.
--- MOVETYPE_FLYGRAVITY + MOVECOLLIDE_FLY_CUSTOM:
---   Engine handles gravity integration, position sweeping, and collision detection.
---   Touch() receives collision events and applies our ClipVelocity response.
---   Think() only handles friction/settle after landing, decals, and lifetime.
+-- hl1_hgib_o: MOVETYPE_FLYGRAVITY + MOVECOLLIDE_FLY_CUSTOM
 --
--- NOTE: MOVETYPE_WALK causes "PhysicsSimulate: bad movetype 2" spam.
--- Stay on MOVETYPE_FLYGRAVITY throughout; switch to MOVETYPE_NONE only when fully stopped.
+-- The engine handles gravity integration and position sweeping each tick.
+-- HOWEVER: with MOVECOLLIDE_FLY_CUSTOM, Touch() is responsible for ALL velocity
+-- modification on collision. The engine does NOT pre-bounce or pre-stop the entity.
+-- But GetAbsVelocity() inside Touch() returns the velocity AFTER the engine has already
+-- clipped it for this frame — so we self-track GibVelocity (same as hl1_hgib) to
+-- always have the correct pre-collision velocity for ClipVelocity().
+--
+-- Think() syncs GibVelocity from the engine each frame so gravity is captured.
+-- Touch() uses GibVelocity for ClipVelocity, then calls SetAbsVelocity with the result.
+-- Think() only handles friction when grounded.
+--
+-- NOTE: Never switch to MOVETYPE_WALK — causes "PhysicsSimulate: bad movetype 2" spam.
 
 local GIB_ELASTICITY = 1 - 0.55  -- 0.45
 local GIB_FRICTION   = 4
@@ -34,7 +40,6 @@ function ENT:Initialize()
 
 	self:SetBodygroup(0, self:GetNWInt("GibBodygroup", 0))
 
-	-- Engine handles gravity + velocity integration. Touch() handles collision response.
 	self:SetMoveType(MOVETYPE_FLYGRAVITY)
 	self:SetMoveCollide(MOVECOLLIDE_FLY_CUSTOM)
 	self:SetSolid(SOLID_BBOX)
@@ -44,17 +49,18 @@ function ENT:Initialize()
 	-- Scale gravity to match HL1's 800 u/s² (sv_gravity default = 600)
 	self:SetGravity(GIB_GRAVITY / 600)
 
+	self.GibVelocity     = Vector(0, 0, 0)  -- our tracked velocity (pre-collision)
 	self.GibOnGround     = false
 	self.BloodDecalsLeft = 5
 	self.BloodColor      = BLOOD_COLOR_RED
 	self.LifeTime        = 25
 	self.WaitTillLandTime = CurTime() + 4
 
-	-- Engine integrates angular velocity for us
+	-- Engine integrates angular velocity for us — no manual angle math needed
 	self:SetLocalAngularVelocity(Angle(math.Rand(100, 200), math.Rand(100, 300), 0))
 
-	-- GibVelocity is set by the SpawnGib helper after Spawn(); apply it now
-	if self.GibVelocity then
+	-- GibVelocity set by SpawnGib helper after Spawn(); apply it now
+	if self.GibVelocity and self.GibVelocity:LengthSqr() > 0 then
 		self:SetAbsVelocity(self.GibVelocity)
 	end
 
@@ -65,14 +71,15 @@ function ENT:Touch(ent)
 	if CLIENT then return end
 	if self.GibOnGround then return end
 
-	local vel = self:GetAbsVelocity()
+	-- Use our self-tracked velocity, not GetAbsVelocity() — the engine may have
+	-- already modified it by the time Touch() fires.
+	local vel = self.GibVelocity
 
-	-- Trace straight down to get the floor normal reliably.
-	-- A short downward trace from our origin finds the surface we just hit.
-	local pos  = self:GetPos()
+	-- Trace down to get the surface normal we just hit
+	local pos = self:GetPos()
 	local tr = util.TraceLine({
-		start  = pos + Vector(0, 0, 2),
-		endpos  = pos - Vector(0, 0, 8),
+		start  = pos + Vector(0, 0, 4),
+		endpos  = pos - Vector(0, 0, 12),
 		filter = self,
 		mask   = MASK_SOLID,
 	})
@@ -80,7 +87,7 @@ function ENT:Touch(ent)
 	local normal  = tr.Hit and tr.HitNormal or Vector(0, 0, 1)
 	local isFloor = normal.z > 0.7
 
-	-- Blood decal on contact
+	-- Blood decal
 	if self.BloodDecalsLeft > 0 and self.BloodColor ~= DONT_BLEED then
 		local decal = (self.BloodColor == BLOOD_COLOR_YELLOW) and "YellowBlood" or "Blood"
 		util.Decal(decal, pos + normal, pos - normal)
@@ -94,46 +101,48 @@ function ENT:Touch(ent)
 	local newVel = ClipVelocity(vel, normal, GIB_ELASTICITY)
 
 	if isFloor and math.abs(newVel.z) < 60 then
-		-- Settled on a floor — kill vertical, stop spinning, hand off to Think friction
 		newVel.z = 0
 		self.GibOnGround = true
 		self:SetLocalAngularVelocity(Angle(0, 0, 0))
 		local ang = self:GetAngles()
 		ang.p = 0; ang.r = 0
 		self:SetAngles(ang)
-		-- Keep MOVETYPE_FLYGRAVITY to avoid "bad movetype" PhysicsSimulate spam.
-		-- Gravity is zeroed out by killing Z velocity; Think() drives horizontal friction.
-		self:SetGravity(0)
+		self:SetGravity(0)  -- kill gravity; Think() handles horizontal friction
 	end
 
+	self.GibVelocity = newVel
 	self:SetAbsVelocity(newVel)
 end
 
 function ENT:Think()
 	if CLIENT then self:NextThink(CurTime()) return true end
 
-	-- Airborne: just watch for stall / lifetime
 	if not self.GibOnGround then
+		-- Sync tracked velocity from engine each frame so gravity accumulation is captured
+		self.GibVelocity = self:GetAbsVelocity()
+
 		if CurTime() > self.WaitTillLandTime then
-			if self:GetAbsVelocity():LengthSqr() < 1 then
+			if self.GibVelocity:LengthSqr() < 1 then
 				SafeRemoveEntityDelayed(self, self.LifeTime)
 				return
 			else
 				self.WaitTillLandTime = CurTime() + 0.5
 			end
 		end
+
 		self:NextThink(CurTime())
 		return true
 	end
 
-	-- Grounded: apply friction each tick
-	local vel   = self:GetAbsVelocity()
+	-- Grounded: apply friction manually
+	local vel   = self.GibVelocity
 	local dt    = FrameTime()
 	local speed = vel:Length2D()
 
 	if speed < 2 then
+		self.GibVelocity = Vector(0, 0, 0)
 		self:SetAbsVelocity(Vector(0, 0, 0))
-		self:SetMoveType(MOVETYPE_NONE)  -- fully static now; safe to freeze
+		self:SetMoveType(MOVETYPE_NONE)
 		SafeRemoveEntityDelayed(self, self.LifeTime)
 		return
 	end
@@ -141,7 +150,9 @@ function ENT:Think()
 	local control  = math.max(speed, GIB_STOPSPEED)
 	local newspeed = math.max(0, speed - dt * control * GIB_FRICTION)
 	local scale    = newspeed / speed
-	self:SetAbsVelocity(Vector(vel.x * scale, vel.y * scale, 0))
+	local newVel   = Vector(vel.x * scale, vel.y * scale, 0)
+	self.GibVelocity = newVel
+	self:SetAbsVelocity(newVel)
 
 	self:NextThink(CurTime())
 	return true
