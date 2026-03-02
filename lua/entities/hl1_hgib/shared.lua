@@ -43,6 +43,14 @@ end
 function ENT:Think()
 	if CLIENT then self:NextThink(CurTime()) return true end
 
+	-- Sleeping: just check lifetime, don't simulate
+	if self.GibSleeping then
+		self.LifeTime = self.LifeTime - 0.5
+		if self.LifeTime <= 0 then SafeRemoveEntityDelayed(self, 0) return end
+		self:NextThink(CurTime() + 0.5)
+		return true
+	end
+
 	local dt = FrameTime()
 	if dt <= 0 then self:NextThink(CurTime()) return true end
 
@@ -74,10 +82,11 @@ function ENT:Think()
 		ang.p = 0; ang.r = 0
 		self:SetAngles(ang)
 
-		-- Hard stop
+		-- Hard stop: go to sleep, wake every 0.5s to check lifetime only
 		if vel:Length2D() < 2 then
 			self.GibVelocity = Vector(0, 0, 0)
-			self:NextThink(CurTime())
+			self.GibSleeping = true
+			self:NextThink(CurTime() + 0.5)
 			return true
 		end
 
