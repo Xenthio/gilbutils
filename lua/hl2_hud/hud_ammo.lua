@@ -20,6 +20,7 @@ local pri = {
 }
 local lastClip    = -1
 local lastReserve = -1
+local lastWpn     = nil
 
 -- Secondary ammo state
 local sec = {
@@ -28,6 +29,7 @@ local sec = {
     blur    = make(0),
 }
 local lastSecAmmo = -1
+local lastSecWpn  = nil
 
 local function priEvent(name)
     local C = HL2Hud.Colors
@@ -89,6 +91,10 @@ function elem:Draw(x, y, clip_h)
     -- Secondary ammo panel (drawn on the RIGHT of primary, per hudlayout r76 vs r150)
     local showSec = hasSec(wpn)
     if showSec then
+        if wpn ~= lastSecWpn then
+            lastSecAmmo = -1
+            lastSecWpn  = wpn
+        end
         local secAmmo = ply:GetAmmoCount(wpn:GetSecondaryAmmoType())
         if secAmmo ~= lastSecAmmo then
             if lastSecAmmo < 0 then
@@ -129,6 +135,13 @@ function elem:Draw(x, y, clip_h)
 
     -- Primary ammo panel (rightmost 136px, or full width if no secondary)
     if not IsValid(wpn) or wpn:GetPrimaryAmmoType() == -1 then return end
+
+    -- Reset on weapon switch so we snap instead of firing wrong events
+    if wpn ~= lastWpn then
+        lastClip    = -1
+        lastReserve = -1
+        lastWpn     = wpn
+    end
 
     local clip = wpn:Clip1()
     local reserve
