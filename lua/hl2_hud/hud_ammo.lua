@@ -180,7 +180,7 @@ function ammoElem:Draw(x, y, clip_h)
     local secW    = 60 * s
 
     if showSec then
-        local sx  = x
+        local sx  = x + priW + 2*s
         local a   = sec.alpha.cur / 255
         local function fa(c) return Color(c.r, c.g, c.b, math.Round(c.a * a)) end
         local sbg = fa(sec.bgColor.cur)
@@ -244,7 +244,7 @@ function ammoElem:Draw(x, y, clip_h)
     lastClip    = clip
     lastReserve = reserve
 
-    local px  = showSec and (x + secW + 2*s) or x
+    local px  = x  -- primary always at left edge
     local pbg = pri.bgColor.cur
     draw.RoundedBox(8, px, y, priW, 36*s, pbg.a > 0 and pbg or C.BgColor)
 
@@ -270,17 +270,8 @@ function ammoElem:Draw(x, y, clip_h)
     surface.SetTextPos(px + 44*s, y + 2*s)
     surface.DrawText(clipStr)
 
-    -- Reserve (small, digit2_xpos=98, uses ammo2color)
+    -- Reserve (small, digit2_xpos=98, uses ammo2color — no glow per hudanimations.txt)
     if reserve and reserve >= 0 then
-        local sblur = pri.blur.cur  -- reserve uses same blur as primary
-        if sblur > 0 then
-            local ga = math.Clamp(sblur/7*255, 0, 255)
-            local fc = pri.ammo2color.cur
-            surface.SetFont("HL2Hud_NumbersGlow")
-            surface.SetTextColor(Color(fc.r,fc.g,fc.b,ga))
-            surface.SetTextPos(px + 98*s, y + 16*s)
-            surface.DrawText(tostring(reserve))
-        end
         surface.SetFont("HL2Hud_NumbersSmall")
         surface.SetTextColor(pri.ammo2color.cur)
         surface.SetTextPos(px + 98*s, y + 16*s)
