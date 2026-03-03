@@ -86,7 +86,7 @@ function elem:Draw(x, y, clip_h)
     local C  = HL2Hud.Colors
     local totalW, h = self:GetSize()
 
-    -- Secondary ammo panel (drawn first, leftmost)
+    -- Secondary ammo panel (drawn on the RIGHT of primary, per hudlayout r76 vs r150)
     local showSec = hasSec(wpn)
     if showSec then
         local secAmmo = ply:GetAmmoCount(wpn:GetSecondaryAmmoType())
@@ -101,8 +101,8 @@ function elem:Draw(x, y, clip_h)
             lastSecAmmo = secAmmo
         end
 
-        -- secondary panel: leftmost 60px
-        local sx = x
+        -- secondary panel: right of primary (primary=136, gap=2, secondary=60)
+        local sx = x + (136+2)*s
         local sbg = sec.bgColor.cur
         draw.RoundedBox(8, sx, y, 60*s, h, sbg.a > 0 and sbg or C.BgColor)
 
@@ -152,7 +152,7 @@ function elem:Draw(x, y, clip_h)
         lastReserve = reserve
     end
 
-    local px  = showSec and (x + (60+2)*s) or x
+    local px  = x  -- primary always at left edge
     local pbg = pri.bgColor.cur
     draw.RoundedBox(8, px, y, 136*s, h, pbg.a > 0 and pbg or C.BgColor)
 

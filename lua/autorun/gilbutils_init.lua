@@ -13,7 +13,6 @@ if SERVER then
     AddCSLuaFile("hl2_hud/hud_battery.lua")
     AddCSLuaFile("hl2_hud/hud_suit_power.lua")
     AddCSLuaFile("hl2_hud/hud_ammo.lua")
-    AddCSLuaFile("hl2_hud/hud_secondary_ammo.lua")
 end
 
 include("gilbutils/gibs.lua")

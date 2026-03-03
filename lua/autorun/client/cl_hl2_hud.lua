@@ -28,7 +28,6 @@ include("hl2_hud/hud_health.lua")
 include("hl2_hud/hud_battery.lua")
 include("hl2_hud/hud_suit_power.lua")
 include("hl2_hud/hud_ammo.lua")
-include("hl2_hud/hud_secondary_ammo.lua")
 -- include("hl2_hud/hud_weapon_selection.lua")  -- TODO
 
 -- Suppress native panels
@@ -38,6 +37,7 @@ hook.Add("HUDShouldDraw", "HL2Hud_HideNative", function(name)
     if name == "CHudSuit"            then return false end
     if name == "CHudAmmo"            then return false end
     if name == "CHudAmmoSecondary"   then return false end
+    if name == "CHudSecondaryAmmo"    then return false end
 end)
 EHUD.OwnsAuxBar = true
 
@@ -50,6 +50,5 @@ EHUD.AddToColumn("health", "hl2_aux_power",       HL2Hud.auxElem,           5)
 
 local aCol = EHUD.GetColumn("ammo")
 if aCol then aCol.base_element = HL2Hud.ammoElem end
-EHUD.AddToColumn("ammo", "hl2_ammo_secondary", HL2Hud.ammoSecondaryElem, 5)
 
 print("[GilbUtils] HL2 HUD loaded")
