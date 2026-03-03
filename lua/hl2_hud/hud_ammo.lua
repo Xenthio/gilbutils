@@ -93,11 +93,13 @@ local function secEvent(name)
         set(sec.bgColor,  C.BgColor,            "Deaccel", 0.1,  1.0)
         set(sec.fgColor,  C.BrightFg,           "Linear",  0,    0.1)
         set(sec.fgColor,  C.FgColor,            "Linear",  0.2,  1.5)
-        set(sec.alpha,    255,                  "Linear",  0,    0.1)
+        -- Alpha slides in over 0.5s (matches HudAmmo Position Deaccel 0.5s from hudanimations.txt)
+        set(sec.alpha,    255,                  "Deaccel", 0,    0.5)
     elseif name == "WeaponDoesNotUseSecondaryAmmo" then
         set(sec.fgColor,  Color(0,0,0,0),       "Linear",  0,    0.4)
         set(sec.bgColor,  Color(0,0,0,0),       "Linear",  0,    0.4)
-        set(sec.alpha,    0,                    "Linear",  0,    0.1)
+        -- Fade out over 0.4s so the slide-away is visible
+        set(sec.alpha,    0,                    "Deaccel", 0,    0.4)
     elseif name == "AmmoSecondaryIncreased" then
         set(sec.fgColor,  C.BrightFg,           "Linear",  0,    0.15)
         set(sec.fgColor,  C.FgColor,            "Deaccel", 0.15, 1.5)
@@ -128,7 +130,10 @@ function ammoElem:GetSize()
     local priW = pri.width.cur * s
     local secA = sec.alpha.cur
     if secA > 0 then
-        return priW + (SEC_GAP * s) + (60 * s), 36 * s
+        -- Scale by alpha fraction so the block smoothly grows/shrinks during transition
+        -- This replicates the HudAmmo Position slide (r150→r222 / r222→r150) from source
+        local frac = secA / 255
+        return priW + math.Round((SEC_GAP * s + 60 * s) * frac), 36 * s
     end
     return priW, 36 * s
 end
@@ -181,7 +186,9 @@ function ammoElem:Draw(x, y, clip_h)
     local secW = 60 * s
     local gapW = SEC_GAP * s
     local px   = x               -- primary: always left edge
-    local sx   = x + priW + gapW -- secondary: right of primary + gap
+    -- Secondary x tracks proportionally so it slides in during transition
+    local frac = secA / 255
+    local sx   = x + priW + math.Round(gapW * frac) -- secondary slides in from gap edge
 
     -- ── Secondary panel ─────────────────────────────────────────────────────
     if secA > 0 and IsValid(wpn) and wpn:GetSecondaryAmmoType() ~= -1 then
