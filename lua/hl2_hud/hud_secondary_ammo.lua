@@ -14,7 +14,6 @@ local state = {
     blur      = make(0),
 }
 local lastVal = -1
-local visible = false
 
 local function event(name)
     local C = HL2Hud.Colors
@@ -31,7 +30,6 @@ HL2Hud.ammoSecondaryEvent = event
 
 local elem = {}
 function elem:GetSize()
-    if not visible then return 72*(ScrH()/480), 0 end
     local s = ScrH()/480
     return 72*s, 36*s
 end
@@ -42,11 +40,8 @@ function elem:Draw(x, y, clip_h)
     local wpn = ply:GetActiveWeapon()
     step(state.fgColor) step(state.textColor) step(state.bgColor) step(state.blur)
 
-    if not IsValid(wpn) or not wpn:UsesSecondaryAmmo() then
-        visible = false return
-    end
+    if not IsValid(wpn) or not wpn:UsesSecondaryAmmo() then return end
     local ammo = ply:GetAmmoCount(wpn:GetSecondaryAmmoType())
-    visible = ammo >= 0
 
     if ammo ~= lastVal then
         if lastVal >= 0 then

@@ -18,8 +18,6 @@ local state = {
 }
 local lastClip    = -1
 local lastReserve = -1
-local visible     = false
-
 local function event(name)
     local C = HL2Hud.Colors
     if name == "WeaponChanged" or name == "AmmoIncreased" then
@@ -36,7 +34,6 @@ HL2Hud.ammoEvent = event
 
 local elem = {}
 function elem:GetSize()
-    if not visible then return 136*(ScrH()/480), 0 end
     local s = ScrH()/480
     return 136*s, 36*s
 end
@@ -48,10 +45,7 @@ function elem:Draw(x, y, clip_h)
 
     step(state.fgColor) step(state.textColor) step(state.bgColor) step(state.blur)
 
-    if not IsValid(wpn) or not wpn:UsesPrimaryAmmo() then
-        visible = false return
-    end
-    visible = true
+    if not IsValid(wpn) or not wpn:UsesPrimaryAmmo() then return end
 
     local clip    = wpn:Clip1()
     local reserve
