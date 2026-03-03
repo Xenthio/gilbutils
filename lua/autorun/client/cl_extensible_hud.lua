@@ -207,7 +207,11 @@ end
 -- Computes how much vertical space the native HL2 aux bar occupies above
 -- the health column, so we can slide our vstack items out of the way.
 -- ============================================================================
+-- Set to true when an EHUD vstack element owns the aux bar (skips native offset to avoid double-push)
+EHUD.OwnsAuxBar = false
+
 function EHUD.GetNativeAuxHeight()
+    if EHUD.OwnsAuxBar then return 0 end
     local ply = LocalPlayer()
     if not IsValid(ply) or not ply:Alive() then return 0 end
     local s = EHUD.Scale()
