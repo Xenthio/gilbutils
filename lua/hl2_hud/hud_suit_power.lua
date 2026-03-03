@@ -1,10 +1,9 @@
 -- hud_suit_power.lua — Port of CHudSuitPower (hud_suitpower.cpp)
--- hudlayout: xpos=16 ypos=396 wide=102 tall=26 (grows with active items)
---   BarInsetX=8  BarInsetY=15  BarWidth=92  BarHeight=4
---   BarChunkWidth=6  BarChunkGap=3
---   text_xpos=8  text_ypos=4  text2_xpos=8  text2_ypos=22  text2_gap=10
--- Animation events: SuitAuxPowerMax, SuitAuxPowerNotMax,
---                   SuitAuxPowerDecreasedBelow25, SuitAuxPowerIncreasedAbove25
+-- Uses HIDEHUD_NEEDSUIT: hidden when player has no suit (ply:HasSuit() == false)
+-- hudlayout: xpos=16 ypos=396 wide=102
+--   base tall=26, grows 10px per active item beyond the first
+--   BarInsetX=8 BarInsetY=15 BarWidth=92 BarHeight=4 BarChunkWidth=6 BarChunkGap=3
+--   text_xpos=8 text_ypos=4  text2_xpos=8 text2_ypos=22 text2_gap=10
 
 local make = HL2Hud.Anim.make
 local set  = HL2Hud.Anim.set
@@ -44,12 +43,12 @@ end
 local elem = {}
 function elem:GetSize()
     local ply = LocalPlayer()
-    if not IsValid(ply) then return 102*(ScrH()/480), 0 end
+    local s   = ScrH()/480
+    -- Hidden when no suit (HIDEHUD_NEEDSUIT)
+    if not IsValid(ply) or not ply:HasSuit() then return 102*s, 0 end
     local power = ply:GetSuitPower()
     local items = getItems()
-    if power >= 100 and #items == 0 then return 102*(ScrH()/480), 0 end
-    local s = ScrH()/480
-    -- base tall=26; with items: max(26, text2_ypos + (n-1)*text2_gap + font_h + padding)
+    if power >= 100 and #items == 0 then return 102*s, 0 end
     local h = 26*s
     if #items > 0 then h = math.max(h, (22 + (#items-1)*10 + 12 + 4)*s) end
     return 102*s, h
@@ -57,13 +56,12 @@ end
 
 function elem:Draw(x, y, clip_h)
     local ply = LocalPlayer()
-    if not IsValid(ply) then return end
+    if not IsValid(ply) or not ply:HasSuit() then return end
     local power = ply:GetSuitPower()
     local items = getItems()
 
     step(auxColor) step(bgColor)
 
-    -- State change detection → events
     local isMax = power >= 100 and #items == 0
     if isMax and lastPower ~= 100 then
         event("SuitAuxPowerMax")
@@ -85,25 +83,24 @@ function elem:Draw(x, y, clip_h)
 
     draw.RoundedBox(6, x, y, w, h, bg.a > 0 and bg or HL2Hud.Colors.BgColor)
 
-    -- Label (text_xpos=8, text_ypos=4)
     surface.SetFont("HL2Hud_Text")
     surface.SetTextColor(col)
     surface.SetTextPos(x + 8*s, y + 4*s)
     surface.DrawText("AUX POWER")
 
-    -- Chunked bar (exact hudlayout.res values)
-    local bx,by   = x+8*s, y+15*s
-    local bw,bh   = 92*s,  4*s
-    local cw,cg   = 6*s,   3*s
-    local count   = math.floor(bw/(cw+cg))
-    local filled  = math.floor(count*(power/100)+0.5)
-    local cx      = bx
+    -- Chunked bar
+    local bx,by = x+8*s, y+15*s
+    local bw,bh = 92*s, 4*s
+    local cw,cg = 6*s, 3*s
+    local count  = math.floor(bw/(cw+cg))
+    local filled = math.floor(count*(power/100)+0.5)
+    local cx     = bx
     surface.SetDrawColor(col)
-    for i=1,filled        do surface.DrawRect(cx,by,cw,bh) cx=cx+cw+cg end
+    for i=1,filled       do surface.DrawRect(cx,by,cw,bh) cx=cx+cw+cg end
     surface.SetDrawColor(Color(col.r,col.g,col.b, HL2Hud.Colors.AuxDisabled))
-    for i=filled+1,count  do surface.DrawRect(cx,by,cw,bh) cx=cx+cw+cg end
+    for i=filled+1,count do surface.DrawRect(cx,by,cw,bh) cx=cx+cw+cg end
 
-    -- Active item labels (text2_xpos=8, text2_ypos=22, text2_gap=10)
+    -- Active item labels
     surface.SetFont("HL2Hud_Text")
     surface.SetTextColor(col)
     local iy = y + 22*s
