@@ -211,15 +211,18 @@ function EHUD.GetNativeAuxHeight()
     local ply = LocalPlayer()
     if not IsValid(ply) or not ply:Alive() then return 0 end
     local s = EHUD.Scale()
-    -- Native aux bar shows if suit power < 100 or any item is active
-    local hasSuit   = ply:Armor() > 0
+    -- Active items: sprint, flashlight, oxygen each add a row
     local sprinting = ply:IsSprinting() and ply:GetVelocity():Length2D() > 1
     local flash     = ply:FlashlightIsOn()
     local oxygen    = ply:WaterLevel() == 3
-    if not hasSuit then return 0 end
-    -- Base aux bar: 26 units. Each active item adds 10 units. Minimum shown when suit power < 100.
     local itemCount = (sprinting and 1 or 0) + (flash and 1 or 0) + (oxygen and 1 or 0)
-    local h = (26 + math.max(0, itemCount) * 10) * s
+    -- Native aux bar appears when suit power is below 100 OR any item is active.
+    -- Does NOT require armor > 0 — sprint/flashlight trigger it too.
+    local suitPower = ply:GetSuitPower()
+    local auxVisible = suitPower < 100 or itemCount > 0
+    if not auxVisible then return 0 end
+    -- Base bar: 26 units tall. Each active item row: +10 units.
+    local h = (26 + itemCount * 10) * s
     return h + EHUD.STACK_GAP * s
 end
 
