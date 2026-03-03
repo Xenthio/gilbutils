@@ -321,16 +321,18 @@ hook.Add("HUDPaint", "EHUD_Render", function()
         if col.check_visible() then
             local colW = col.width_base * s
 
-            -- Special: reserve space for native ammo
-            if col.id == "ammo" then
+            -- Draw base element; if no base_element on ammo column, reserve native space
+            if col.base_element then
+                local w, h = col.base_element:GetSize()
+                if w > 0 and h > 0 then
+                    colW = w
+                    col.base_element:Draw(rx - w, baseY + (36 * s - h), h)
+                end
+            elseif col.id == "ammo" then
                 local nativeW = EHUD.GetNativeAmmoWidth() * s
                 local target = nativeW > 0 and (nativeW - margin + gap) or 0
                 local animated = animStep(col.anim_width, target, dt)
                 colW = animated - gap
-            elseif col.base_element then
-                local w, h = col.base_element:GetSize()
-                colW = w
-                col.base_element:Draw(rx - w, baseY + (36 * s - h), h)
             end
 
             local stackTopY = baseY - stackGap
