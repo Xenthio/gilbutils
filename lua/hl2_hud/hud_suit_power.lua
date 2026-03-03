@@ -30,13 +30,17 @@ local function event(name)
 end
 HL2Hud.auxEvent = event
 
+local cv_suit = GetConVar("gmod_suit") or { GetBool = function() return true end }
+
 local function getItems()
     local ply = LocalPlayer()
     if not IsValid(ply) then return {} end
     local t = {}
-    if ply:WaterLevel() == 3                                   then table.insert(t,"OXYGEN")     end
-    if ply:FlashlightIsOn()                                    then table.insert(t,"FLASHLIGHT") end
-    if ply:IsSprinting() and ply:GetVelocity():Length2D() > 1  then table.insert(t,"SPRINT")    end
+    local hasSuit = cv_suit:GetBool()
+    -- gmod_suit controls whether stamina/oxygen are active
+    if hasSuit and ply:WaterLevel() == 3                                   then table.insert(t,"OXYGEN")     end
+    if ply:FlashlightIsOn()                                                then table.insert(t,"FLASHLIGHT") end
+    if hasSuit and ply:IsSprinting() and ply:GetVelocity():Length2D() > 1  then table.insert(t,"SPRINT")    end
     return t
 end
 
