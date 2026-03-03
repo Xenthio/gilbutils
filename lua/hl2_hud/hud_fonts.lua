@@ -10,7 +10,7 @@ local function makeFonts()
     -- HudNumbersSmall (HalfLife2, additive)
     surface.CreateFont("HL2Hud_NumbersSmall", { font="Halflife2", size=math.Round(16*s), weight=1000, antialias=true, additive=true })
     -- HudDefault label font — additive so it composites cleanly over the dark transparent panel bg
-    surface.CreateFont("HL2Hud_Text",         { font="Verdana",   size=math.Round(9*s),  weight=700, antialias=true, additive=true })
+    surface.CreateFont("HL2Hud_Text",         { font="Verdana",   size=math.Round(8*s),  weight=700, antialias=true, additive=true })
 end
 hook.Add("OnScreenSizeChanged", "HL2Hud_Fonts", makeFonts)
 makeFonts()

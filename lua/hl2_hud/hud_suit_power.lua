@@ -44,8 +44,7 @@ local elem = {}
 function elem:GetSize()
     local ply = LocalPlayer()
     local s   = ScrH()/480
-    -- Hidden when no suit (HIDEHUD_NEEDSUIT)
-    if not IsValid(ply) or not ply:HasSuit() then return 102*s, 0 end
+    if not IsValid(ply) then return 102*s, 0 end
     local power = ply:GetSuitPower()
     local items = getItems()
     if power >= 100 and #items == 0 then return 102*s, 0 end
@@ -56,7 +55,7 @@ end
 
 function elem:Draw(x, y, clip_h)
     local ply = LocalPlayer()
-    if not IsValid(ply) or not ply:HasSuit() then return end
+    if not IsValid(ply) then return end
     local power = ply:GetSuitPower()
     local items = getItems()
 
