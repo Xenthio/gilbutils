@@ -53,9 +53,9 @@ function elem:Draw(x, y, clip_h)
             if ammo == 0 then event("AmmoSecondaryEmpty")
             elseif ammo > lastVal then event("AmmoSecondaryIncreased") end
         else
-            state.fgColor.cur   = HL2Hud.Colors.FgColor
-            state.textColor.cur = HL2Hud.Colors.FgColor
-            state.bgColor.cur   = HL2Hud.Colors.BgColor
+            HL2Hud.Anim.snap(state.fgColor,   HL2Hud.Colors.FgColor)
+            HL2Hud.Anim.snap(state.textColor, HL2Hud.Colors.FgColor)
+            HL2Hud.Anim.snap(state.bgColor,   HL2Hud.Colors.BgColor)
         end
         lastVal = ammo
     end

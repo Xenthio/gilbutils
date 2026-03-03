@@ -68,9 +68,9 @@ function elem:Draw(x, y, clip_h)
             elseif clip == 0 then event("AmmoDepleted") end
         else
             -- init: snap colors
-            state.fgColor.cur   = HL2Hud.Colors.FgColor
-            state.textColor.cur = HL2Hud.Colors.FgColor
-            state.bgColor.cur   = HL2Hud.Colors.BgColor
+            HL2Hud.Anim.snap(state.fgColor,   HL2Hud.Colors.FgColor)
+            HL2Hud.Anim.snap(state.textColor, HL2Hud.Colors.FgColor)
+            HL2Hud.Anim.snap(state.bgColor,   HL2Hud.Colors.BgColor)
         end
         lastClip    = clip
         lastReserve = reserve
