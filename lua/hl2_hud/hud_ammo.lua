@@ -86,6 +86,8 @@ local function priEvent(name)
         snap(pri.fgColor,    C.FgColor)
         snap(pri.bgColor,    C.BgColor)
         snap(pri.ammo2color, C.FgColor)
+        snap(sec.fgColor,    C.FgColor)
+        snap(sec.bgColor,    C.BgColor)
     end
 end
 HL2Hud.ammoEvent = priEvent

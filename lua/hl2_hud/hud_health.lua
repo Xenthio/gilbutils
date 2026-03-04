@@ -58,9 +58,9 @@ local function event(name)
         set(state.bgColor, C.BgColor,          "Deaccel", 0.1,  0.8)
         nextPulse = CurTime() + 0.8
     elseif name == "ColorsChanged" then
-        local c = state.fgColor.cur
-        local isDamaged = (c.r > 100 and c.g < 80)  -- heuristic: reddish = mid-damage anim
-        if not isDamaged then snap(state.fgColor, C.FgColor) end
+        local ply = LocalPlayer()
+        local hp  = IsValid(ply) and ply:Health() or 100
+        snap(state.fgColor, (hp > 0 and hp < 20) and C.DamagedFg or C.FgColor)
         snap(state.bgColor, C.BgColor)
     end
 end

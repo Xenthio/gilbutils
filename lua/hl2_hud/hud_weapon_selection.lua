@@ -600,6 +600,11 @@ hook.Add("HUDPaint", "HL2Hud_WeaponSelection_ColorSync", function()
     m_SelFgColor  = C.FgColor
     m_NumberColor = C.FgColor
     m_TextColor   = C.BrightFg
+    -- Keep live color in animTextColor/animFgColor while selector is open
+    if isOpen then
+        snap(animTextColor, C.BrightFg)
+        snap(animFgColor,   C.FgColor)
+    end
 end)
 
 -- Export for external use
