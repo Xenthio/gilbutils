@@ -81,7 +81,6 @@ local function priEvent(name)
     elseif name == "WeaponUsesSecondaryAmmo" then
         -- Primary width stays 132; room for secondary is via GetSize() expanding total block
         set(pri.width,      132,                  "Deaccel", 0,    0.4)
-    end
     -- WeaponDoesNotUseSecondaryAmmo has no primary position change in hudanimations.txt
     elseif name == "ColorsChanged" then
         snap(pri.fgColor,    C.FgColor)

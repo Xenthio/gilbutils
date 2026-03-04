@@ -74,6 +74,7 @@ local function makeFonts()
         size      = math.min(math.Round(64 * s), 128),  -- cap at 128px
         weight    = 0,
         antialias = true,
+        blursize  = math.Round(4 * s),  
         scanlines = math.Round(2 * s),
         additive  = true,
     })
@@ -99,7 +100,7 @@ local function makeFonts()
     -- HudSelectionText — matches ClientScheme.res HudSelectionText (Verdana 8, additive)
     surface.CreateFont("HL2Hud_WeaponText", {
         font      = "Verdana",
-        size      = math.Round(8 * s),
+        size      = math.Round(6 * s),
         weight    = 700,
         antialias = true,
         additive  = true,

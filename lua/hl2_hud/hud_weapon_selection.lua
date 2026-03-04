@@ -195,7 +195,9 @@ local function DoOpenSelection()
     aset(animFgColor,   C_FgColor, "Linear", 0, 0.1)
     aset(animTextColor, C_TextFg,  "Linear", 0, 0.1)
     snap(animTextScan,  1)   -- TextScan "1" Linear 0.0 0.1 = instant set in practice
-    LocalPlayer():EmitSound("common/wpn_hudon.wav", 75, 100, 0.32)
+
+    -- This sound doesn't actually play in HL2
+    --LocalPlayer():EmitSound("common/wpn_hudon.wav", 75, 100, 0.32)
     isOpen    = true
     fadingOut = false
 end
@@ -362,7 +364,7 @@ local function DrawWeaponIcon(wep, bSelected, x, y, boxWide, boxTall, fgAlpha)
         if bSelected then
             -- Active pass: WeaponIconsSelected font (blur=2, scanlines=2 baked in)
             -- animBlur drives alpha of this pass (7=full glow → 0=gone on close)
-            local glowA = math.Clamp(animBlur.cur / 7, 0, 1)
+            local glowA = math.Clamp(animSelAlpha.cur / 7, 0, 1)
             surface.SetAlphaMultiplier(glowA)
             surface.SetFont("HL2Hud_WeaponIconsSelected")
             local sw, sh = surface.GetTextSize(char)
