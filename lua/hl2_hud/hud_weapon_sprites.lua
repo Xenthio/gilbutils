@@ -46,12 +46,14 @@ local function loadWeaponSprites()
         local cls = fname:match("^(.-)%.txt$")
         local raw = file.Read("scripts/" .. fname, "GAME")
         if raw then
-            -- util.KeyValuesToTable flattens ALL nested blocks to top level (lowercased)
-            -- So weapon{} and weapon_s{} are directly at tbl.weapon / tbl.weapon_s
+            -- util.KeyValuesToTable: WeaponData{} is flattened to top level,
+            -- but TextureData{} sub-block is preserved as tbl.texturedata
+            -- weapon{} and weapon_s{} live inside tbl.texturedata
             local ok, tbl = pcall(util.KeyValuesToTable, raw)
             if ok and tbl then
-                local sprNormal   = parseSpriteEntry(tbl.weapon)
-                local sprSelected = parseSpriteEntry(tbl.weapon_s) or sprNormal
+                local td = tbl.texturedata
+                local sprNormal   = td and parseSpriteEntry(td.weapon)
+                local sprSelected = td and (parseSpriteEntry(td.weapon_s) or sprNormal)
                 if sprNormal then
                     HL2Hud.WeaponSprites[cls] = {
                         weapon   = sprNormal,
