@@ -242,20 +242,18 @@ function ammoElem:Draw(x, y, clip_h)
 
     if lastClip >= 0 then
         if clip ~= lastClip then
-            if clip == 0 then      priEvent("AmmoEmpty")
+            if clip == 0 then          priEvent("AmmoEmpty")
             elseif clip > lastClip then priEvent("AmmoIncreased")
-            else                   priEvent("AmmoDecreased") end
+            else                       priEvent("AmmoDecreased") end
         end
         if reserve >= 0 and reserve ~= lastReserve then
-            if reserve == 0 then       priEvent("Ammo2Empty")
+            if reserve == 0 then           priEvent("Ammo2Empty")
             elseif reserve > lastReserve then priEvent("Ammo2Increased")
-            else                       priEvent("Ammo2Decreased") end
+            else                           priEvent("Ammo2Decreased") end
         end
-    else
-        -- First frame: snap to base colors (weapon switch already fired WeaponChanged flash)
-        snap(pri.fgColor, C.FgColor)
-        snap(pri.bgColor, C.BgColor)
     end
+    -- Note: no snap on first frame — WeaponChanged fires in the weapon-switch block
+    -- and sets up the flash animation. Snapping here would clobber it.
     lastClip    = clip
     lastReserve = reserve or -1
 
