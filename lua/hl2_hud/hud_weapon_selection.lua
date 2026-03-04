@@ -521,9 +521,22 @@ hook.Add("HUDPaint", "HL2Hud_WeaponSelection", function()
                 else
                     local bSel = (wep == pSel)
                     if gmodStyle and not bSel then
-                        -- GMod: non-selected weapons in active slot = small collapsed box, no icon
+                        -- GMod: non-selected weapons in active slot = small collapsed box with name
                         DrawBox(xpos, ypos, largeWide, smallSize, m_BoxColor, alpha,
                                 bDrawNumber and (i + 1) or -1)
+                        -- Draw weapon name centered vertically in the small box
+                        local tc = animTextColor.cur
+                        local ta = math.Clamp(tc.a * (alpha / 255), 0, 255)
+                        if ta > 0 then
+                            surface.SetFont("HL2Hud_WeaponText")
+                            surface.SetTextColor(tc.r, tc.g, tc.b, ta)
+                            local name = wep:GetPrintName()
+                            local tw, th = surface.GetTextSize(name)
+                            surface.SetTextPos(
+                                xpos + math.floor((largeWide - tw) / 2),
+                                ypos + math.floor((smallSize - th) / 2))
+                            surface.DrawText(name)
+                        end
                         ypos = ypos + smallSize + boxGap
                     else
                         DrawLargeWeaponBox(wep, bSel,
