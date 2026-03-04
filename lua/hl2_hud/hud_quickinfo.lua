@@ -45,23 +45,27 @@ local function eventElapsed()
     return (CurTime() - state.lastEventT) > EVENT_DUR
 end
 
--- DrawIconProgressBar HUDPB_VERTICAL: draws `full` glyph clipped, then `empty` for the rest.
--- perc = fraction that is EMPTY (0 = show full bracket, 1 = show empty bracket).
--- We approximate by drawing the full glyph with a clipping rect (scissor) and the empty glyph underneath.
+-- DrawIconProgressBar HUDPB_VERTICAL: two non-overlapping scissor-clipped halves.
+-- perc = fraction EMPTY from top (0=fully filled, 1=fully empty).
+-- Top barOfs rows = empty glyph; remaining rows = full glyph. No overlap.
 local function drawProgressBracket(x, y, charFull, charEmpty, perc, col, font, glyphW, glyphH)
-    -- draw empty glyph as base
+    local barOfs = math.Round(glyphH * perc)
+
     surface.SetFont(font)
     surface.SetTextColor(col.r, col.g, col.b, col.a)
-    surface.SetTextPos(x, y)
-    surface.DrawText(charEmpty)
 
-    -- draw full glyph clipped from top by perc (vertical fill from bottom = HL2 HUDPB_VERTICAL)
-    local fillH = math.Round(glyphH * (1 - perc))
-    if fillH > 0 then
-        local clipY = y + (glyphH - fillH)
-        render.SetScissorRect(x, clipY, x + glyphW, y + glyphH, true)
+    -- Top portion: empty glyph cropped to barOfs rows
+    if barOfs > 0 then
+        render.SetScissorRect(x, y, x + glyphW, y + barOfs, true)
         surface.SetTextPos(x, y)
-        surface.SetTextColor(col.r, col.g, col.b, col.a)
+        surface.DrawText(charEmpty)
+        render.SetScissorRect(0, 0, 0, 0, false)
+    end
+
+    -- Bottom portion: full glyph cropped from barOfs downward
+    if barOfs < glyphH then
+        render.SetScissorRect(x, y + barOfs, x + glyphW, y + glyphH, true)
+        surface.SetTextPos(x, y)
         surface.DrawText(charFull)
         render.SetScissorRect(0, 0, 0, 0, false)
     end
