@@ -211,13 +211,14 @@ local function DoFadeOut()
     fadingOut = true
 end
 
-local function DoHideSelection()
+local function DoHideSelection(playSound)
     -- CloseWeaponSelectionMenu (hudanimations.txt)
     aset(animFgColor,   Color(0,0,0,0), "Linear", 0, 0.1)
     aset(animTextColor, Color(0,0,0,0), "Linear", 0, 0.1)
     aset(animAlpha,     0,              "Linear", 0, 0.1)
     aset(animSelAlpha,  0,              "Linear", 0, 0.1)
-    if isOpen then
+    -- Sound only when explicitly closing (not after fade-out timeout)
+    if playSound and isOpen then
         LocalPlayer():EmitSound("common/wpn_hudoff.wav", 75, 100, 0.32)
     end
     isOpen      = false
@@ -291,9 +292,17 @@ hook.Add("PlayerBindPress", "HL2Hud_WeaponSelection", function(ply, bind, presse
     -- +attack / +use confirms weapon selection
     if (bind == "+attack" or bind == "+use") and isOpen and IsValid(selectedWep) then
         local cls = selectedWep:GetClass()
-        DoHideSelection()  -- hide first so next draw pass is clean
-        RunConsoleCommand("use", cls)
+        -- Snap shut instantly (no 0.1s fade) so next frame draws nothing
+        snap(animAlpha,     0)
+        snap(animSelAlpha,  0)
+        snap(animFgColor,   Color(0,0,0,0))
+        snap(animTextColor, Color(0,0,0,0))
+        isOpen      = false
+        fadingOut   = false
+        selectedWep = nil
+        justClosedTime = CurTime()
         LocalPlayer():EmitSound("common/wpn_select.wav", 75, 100, 0.32)
+        RunConsoleCommand("use", cls)
         return true
     end
 end)
@@ -308,7 +317,7 @@ hook.Add("Think", "HL2Hud_WeaponSelection_Think", function()
         if not fadingOut then
             DoFadeOut()
         elseif elapsed > SELECTION_TIMEOUT + SELECTION_FADEOUT then
-            DoHideSelection()
+            DoHideSelection(false)  -- fade-out timeout: no close sound
             justClosedTime = CurTime()
         end
     elseif fadingOut then
