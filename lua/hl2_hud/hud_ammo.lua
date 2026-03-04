@@ -184,7 +184,8 @@ function ammoElem:Draw(x, y, clip_h)
     local secW = 60 * s
     local gapW = SEC_GAP * s
     local px   = x               -- primary: always left edge
-    local sx   = x + priW + gapW -- secondary: fixed position, just fades in
+    -- Secondary is pinned to right edge (r76 = scrW-margin-secW) so it never slides
+    local sx   = ScrW() - EHUD.MARGIN * s - 60 * s
 
     -- ── Secondary panel ─────────────────────────────────────────────────────
     if secA > 0 and IsValid(wpn) and wpn:GetSecondaryAmmoType() ~= -1 then
