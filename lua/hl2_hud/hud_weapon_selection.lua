@@ -548,11 +548,6 @@ hook.Add("HUDPaint", "HL2Hud_WeaponSelection_ColorSync", function()
     m_SelFgColor  = C.FgColor
     m_NumberColor = C.FgColor
     m_TextColor   = C.BrightFg
-    -- Also update live anim targets if idle (alpha=0 means selector is closed)
-    if animAlpha.cur < 1 then
-        snap(animFgColor,   Color(0,0,0,0))
-        snap(animTextColor, Color(0,0,0,0))
-    end
 end)
 
 -- Export for external use

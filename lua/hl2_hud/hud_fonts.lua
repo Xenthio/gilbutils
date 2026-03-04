@@ -21,8 +21,8 @@ local function makeFonts()
         font      = "HalfLife2",
         size      = math.Round(32 * s),
         weight    = 0,
-        blursize  = math.min(math.Round(4 * s), 4),  -- cap to avoid texture size issues
-        scanlines = 2,
+        blursize  = math.Round(4 * s),  -- cap to avoid texture size issues
+        scanlines = math.Round(2*s),
         antialias = true,
         additive  = true,
     })
@@ -74,7 +74,7 @@ local function makeFonts()
         size      = math.min(math.Round(64 * s), 128),  -- cap at 128px
         weight    = 0,
         antialias = true,
-        scanlines = 2,
+        scanlines = math.Round(2 * s),
         additive  = true,
     })
 

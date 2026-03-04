@@ -37,10 +37,10 @@ local function event(name)
         set(state.blur,    0,          "Deaccel", 0.1,  2.0)
     elseif name == "SuitPowerZero" then
         set(state.alpha,   0,          "Linear",  0,    0.4)
-    end
     elseif name == "ColorsChanged" then
         snap(state.fgColor, C.FgColor)
         snap(state.bgColor, C.BgColor)
+    end
 end
 HL2Hud.suitEvent = event
 
