@@ -46,20 +46,17 @@ local function loadWeaponSprites()
         local cls = fname:match("^(.-)%.txt$")
         local raw = file.Read("scripts/" .. fname, "GAME")
         if raw then
-            -- util.KeyValuesToTable lowercases all keys
+            -- util.KeyValuesToTable flattens ALL nested blocks to top level (lowercased)
+            -- So weapon{} and weapon_s{} are directly at tbl.weapon / tbl.weapon_s
             local ok, tbl = pcall(util.KeyValuesToTable, raw)
             if ok and tbl then
-                local wd = tbl.WeaponData or tbl.weapondata
-                local td = wd and (wd.TextureData or wd.texturedata)
-                if td then
-                    local sprNormal   = parseSpriteEntry(td.weapon)
-                    local sprSelected = parseSpriteEntry(td.weapon_s) or sprNormal
-                    if sprNormal then
-                        HL2Hud.WeaponSprites[cls] = {
-                            weapon   = sprNormal,
-                            weapon_s = sprSelected,
-                        }
-                    end
+                local sprNormal   = parseSpriteEntry(tbl.weapon)
+                local sprSelected = parseSpriteEntry(tbl.weapon_s) or sprNormal
+                if sprNormal then
+                    HL2Hud.WeaponSprites[cls] = {
+                        weapon   = sprNormal,
+                        weapon_s = sprSelected,
+                    }
                 end
             end
         end
