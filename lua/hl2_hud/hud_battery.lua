@@ -38,6 +38,9 @@ local function event(name)
     elseif name == "SuitPowerZero" then
         set(state.alpha,   0,          "Linear",  0,    0.4)
     end
+    elseif name == "ColorsChanged" then
+        snap(state.fgColor, C.FgColor)
+        snap(state.bgColor, C.BgColor)
 end
 HL2Hud.suitEvent = event
 

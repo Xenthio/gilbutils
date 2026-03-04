@@ -57,6 +57,11 @@ local function event(name)
         set(state.bgColor, Color(100,0,0,80),  "Linear",  0,    0.1)
         set(state.bgColor, C.BgColor,          "Deaccel", 0.1,  0.8)
         nextPulse = CurTime() + 0.8
+    elseif name == "ColorsChanged" then
+        local c = state.fgColor.cur
+        local isDamaged = (c.r > 100 and c.g < 80)  -- heuristic: reddish = mid-damage anim
+        if not isDamaged then snap(state.fgColor, C.FgColor) end
+        snap(state.bgColor, C.BgColor)
     end
 end
 HL2Hud.healthEvent = event

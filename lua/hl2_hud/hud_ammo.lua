@@ -83,6 +83,10 @@ local function priEvent(name)
         set(pri.width,      132,                  "Deaccel", 0,    0.4)
     end
     -- WeaponDoesNotUseSecondaryAmmo has no primary position change in hudanimations.txt
+    elseif name == "ColorsChanged" then
+        snap(pri.fgColor,    C.FgColor)
+        snap(pri.bgColor,    C.BgColor)
+        snap(pri.ammo2color, C.FgColor)
 end
 HL2Hud.ammoEvent = priEvent
 

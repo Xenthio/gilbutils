@@ -42,6 +42,14 @@ local function event(name)
         set(panelH, 46, "Linear", 0, 0.4)
     elseif name == "SuitAuxPowerThreeItemsActive" then
         set(panelH, 56, "Linear", 0, 0.4)
+    elseif name == "ColorsChanged" then
+        -- Only update color if not fully hidden (max power)
+        if auxColor.cur.a > 0 then
+            local C = HL2Hud.Colors
+            local power = IsValid(LocalPlayer()) and LocalPlayer():GetSuitPower() or 100
+            snap(auxColor, power < 25 and C.AuxLow or C.AuxHigh)
+            snap(bgColor,  C.BgColor)
+        end
     end
 end
 HL2Hud.auxEvent = event

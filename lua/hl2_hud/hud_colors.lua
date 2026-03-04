@@ -24,3 +24,14 @@ HL2Hud.Colors = HL2Hud.Colors or {
     AuxLow           = Color(255,   0,   0, 220),
     AuxDisabled      = 70,
 }
+
+-- HL2Hud.ApplyColors() — call after changing HL2Hud.Colors to propagate to live anim state.
+-- Only snaps anims that are at their "resting" FgColor/BgColor values (not mid-animation).
+-- The rainbow example hook should call this every Think.
+function HL2Hud.ApplyColors()
+    if not HL2Hud.healthEvent then return end  -- elements not loaded yet
+    HL2Hud.healthEvent("ColorsChanged")
+    HL2Hud.suitEvent("ColorsChanged")
+    HL2Hud.ammoEvent("ColorsChanged")
+    if HL2Hud.auxEvent then HL2Hud.auxEvent("ColorsChanged") end
+end

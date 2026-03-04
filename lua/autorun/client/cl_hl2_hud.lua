@@ -28,7 +28,7 @@ include("hl2_hud/hud_health.lua")
 include("hl2_hud/hud_battery.lua")
 include("hl2_hud/hud_suit_power.lua")
 include("hl2_hud/hud_ammo.lua")
--- include("hl2_hud/hud_weapon_selection.lua")  -- TODO
+include("hl2_hud/hud_weapon_selection.lua")
 
 -- Suppress native panels
 hook.Add("HUDShouldDraw", "HL2Hud_HideNative", function(name)
@@ -37,7 +37,8 @@ hook.Add("HUDShouldDraw", "HL2Hud_HideNative", function(name)
     if name == "CHudSuit"            then return false end
     if name == "CHudAmmo"            then return false end
     if name == "CHudAmmoSecondary"   then return false end
-    if name == "CHudSecondaryAmmo"    then return false end
+    if name == "CHudSecondaryAmmo"   then return false end
+    if name == "CHudWeaponSelection" then return false end
 end)
 EHUD.OwnsAuxBar = true
 
