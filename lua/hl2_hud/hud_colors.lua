@@ -34,4 +34,5 @@ function HL2Hud.ApplyColors()
     HL2Hud.suitEvent("ColorsChanged")
     HL2Hud.ammoEvent("ColorsChanged")
     if HL2Hud.auxEvent then HL2Hud.auxEvent("ColorsChanged") end
+    hook.Run("HL2Hud_ColorsChanged")
 end
