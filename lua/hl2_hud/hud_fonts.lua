@@ -75,7 +75,7 @@ local function makeFonts()
         weight    = 0,
         antialias = true,
         blursize  = math.Round(4 * s),  
-        scanlines = math.Round(2 * s),
+        scanlines = math.min(math.Round(2 * s), 5),
         additive  = true,
     })
 

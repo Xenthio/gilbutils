@@ -301,7 +301,8 @@ hook.Add("PlayerBindPress", "HL2Hud_WeaponSelection", function(ply, bind, presse
         fadingOut   = false
         selectedWep = nil
         justClosedTime = CurTime()
-        LocalPlayer():EmitSound("common/wpn_select.wav", 75, 100, 0.32)
+        --LocalPlayer():EmitSound("common/wpn_select.wav", 75, 100, 0.32)
+        LocalPlayer():EmitSound("common/wpn_hudoff.wav", 75, 100, 0.32)
         RunConsoleCommand("use", cls)
         return true
     end
