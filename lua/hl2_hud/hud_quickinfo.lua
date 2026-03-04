@@ -66,12 +66,13 @@ local function drawProgressBracket(x, y, charFull, charEmpty, perc, col, font, g
     end
 end
 
--- DrawWarning: blinks the full bracket at sin(t*8)*128 alpha, ticks down m_*Fade
-local function drawWarning(x, y, charFull, fadeRef, col, font)
-    local scale = math.abs(math.sin(CurTime() * 8)) * 128
-    col = Color(col.r, col.g, col.b, math.Round(scale))
+-- DrawWarning: source caution[3] = int(abs(sin(t*8))*128) * 255 → byte overflow = strobe
+local function drawWarning(x, y, charFull, fadeRef, col, font, masterAlpha)
+    local scale     = math.floor(math.abs(math.sin(CurTime() * 8)) * 128)
+    local warnA     = (scale * 255) % 256
+    local a         = math.Round(warnA * masterAlpha / 255)
     surface.SetFont(font)
-    surface.SetTextColor(col.r, col.g, col.b, col.a)
+    surface.SetTextColor(col.r, col.g, col.b, a)
     surface.SetTextPos(x, y)
     surface.DrawText(charFull)
 end
@@ -174,16 +175,19 @@ hook.Add("HUDPaint", "HL2Hud_QuickInfo", function()
     local clrNormal  = mc(255, 208, 64, 255 * SCALAR)   -- ClientScheme "Normal"
     local clrCaution = Color(255, 48, 0, 255)            -- ClientScheme "Caution"
 
-    local sinScale = math.abs(math.sin(CurTime() * 8)) * 128  -- 0..128
+    local sinScale = math.abs(math.sin(CurTime() * 8)) * 128  -- 0..128 (int in source)
+    -- Source: healthColor[3] = 255 * sinScale where sinScale is 0..128 int → byte overflow
+    -- Result: alpha = (255 * sinScale) % 256 → strobes near-full with brief dark dips
+    local warnAlpha = (255 * math.floor(sinScale)) % 256
 
     -- === LEFT (health) ===
     if state.healthFade > 0 then
-        drawWarning(lx, gy, "[", state.healthFade, clrCaution, font)
+        drawWarning(lx, gy, "[", state.healthFade, clrCaution, font, masterAlpha)
     else
         local healthPerc = math.Clamp(hp / 100, 0, 1)
         local col
         if state.warnHealth then
-            col = mc(clrCaution.r, clrCaution.g, clrCaution.b, sinScale)
+            col = mc(clrCaution.r, clrCaution.g, clrCaution.b, warnAlpha)
         else
             col = clrNormal
         end
@@ -192,7 +196,7 @@ hook.Add("HUDPaint", "HL2Hud_QuickInfo", function()
 
     -- === RIGHT (ammo) ===
     if state.ammoFade > 0 then
-        drawWarning(rx, gy, "]", state.ammoFade, clrCaution, font)
+        drawWarning(rx, gy, "]", state.ammoFade, clrCaution, font, masterAlpha)
     else
         local ammoPerc = 0
         if IsValid(wep) and maxClip > 0 then
@@ -200,7 +204,7 @@ hook.Add("HUDPaint", "HL2Hud_QuickInfo", function()
         end
         local col
         if state.warnAmmo then
-            col = mc(clrCaution.r, clrCaution.g, clrCaution.b, sinScale)
+            col = mc(clrCaution.r, clrCaution.g, clrCaution.b, warnAlpha)
         else
             col = clrNormal
         end
