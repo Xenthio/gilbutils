@@ -507,6 +507,7 @@ hook.Add("HUDPaint", "HL2Hud_WeaponSelection", function()
             end
 
             local bDrawNumber = true
+            local gmodStyle = GetConVar("hl2hud_gmod") and GetConVar("hl2hud_gmod"):GetBool()
             for slotpos = 0, iLastPos do
                 local wep = GetWeaponInSlot(ply, i, slotpos)
                 if not IsValid(wep) then
@@ -514,17 +515,25 @@ hook.Add("HUDPaint", "HL2Hud_WeaponSelection", function()
                         DrawBox(xpos, ypos, largeWide, largeTall, m_EmptyBoxColor, alpha,
                                 bDrawNumber and (i + 1) or -1)
                     else
-                        continue  -- source: if !hud_showemptyweaponslots, skip this slotpos entirely
+                        continue
                     end
+                    ypos = ypos + largeTall + boxGap
                 else
                     local bSel = (wep == pSel)
-                    DrawLargeWeaponBox(wep, bSel,
-                        xpos, ypos, largeWide, largeTall,
-                        bSel and selectedColor or m_BoxColor,
-                        BoxAlpha(bSel),
-                        bDrawNumber and (i + 1) or -1)
+                    if gmodStyle and not bSel then
+                        -- GMod: non-selected weapons in active slot = small collapsed box, no icon
+                        DrawBox(xpos, ypos, largeWide, smallSize, m_BoxColor, alpha,
+                                bDrawNumber and (i + 1) or -1)
+                        ypos = ypos + smallSize + boxGap
+                    else
+                        DrawLargeWeaponBox(wep, bSel,
+                            xpos, ypos, largeWide, largeTall,
+                            bSel and selectedColor or m_BoxColor,
+                            BoxAlpha(bSel),
+                            bDrawNumber and (i + 1) or -1)
+                        ypos = ypos + largeTall + boxGap
+                    end
                 end
-                ypos = ypos + largeTall + boxGap
                 bDrawNumber = false
             end
 
