@@ -28,6 +28,7 @@ include("hl2_hud/hud_health.lua")
 include("hl2_hud/hud_battery.lua")
 include("hl2_hud/hud_suit_power.lua")
 include("hl2_hud/hud_ammo.lua")
+include("hl2_hud/hud_weapon_sprites.lua")
 include("hl2_hud/hud_weapon_selection.lua")
 include("hl2_hud/hud_quickinfo.lua")
 

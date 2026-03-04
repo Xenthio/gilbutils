@@ -351,7 +351,7 @@ end
 ------------------------------------------------------------------------
 -- DrawWeaponIcon — draws inactive icon; for selected: blur glow passes
 -- Source BUCKETS case: always uses inactive sprite, then active w/ blur
--- In GMod HL2 weapons use HalfLife2 font chars; SWEPs use DrawWeaponSelection
+-- In GMod HL2 weapons use HalfLife2 font chars; sprite TextureData; SWEPs use DrawWeaponSelection
 ------------------------------------------------------------------------
 local function DrawWeaponIcon(wep, bSelected, x, y, boxWide, boxTall, fgAlpha)
     local cls  = wep:GetClass()
@@ -390,6 +390,9 @@ local function DrawWeaponIcon(wep, bSelected, x, y, boxWide, boxTall, fgAlpha)
         end
 
         surface.SetAlphaMultiplier(1)
+    elseif HL2Hud.DrawWeaponSprite(cls, bSelected, x, y, boxWide, boxTall, fgAlpha,
+            bSelected and math.Clamp(animSelAlpha.cur / 7, 0, 1) or nil) then
+        -- sprite drawn successfully
     else
         -- SWEP fallback — mirror DyaMetR: disable bounce/infobox for unselected weapons
         render.SetScissorRect(0, 0, 0, 0, false)
