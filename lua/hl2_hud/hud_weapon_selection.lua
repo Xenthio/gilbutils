@@ -237,6 +237,7 @@ end
 -- Input handling
 ------------------------------------------------------------------------
 hook.Add("PlayerBindPress", "HL2Hud_WeaponSelection", function(ply, bind, pressed)
+    if not HL2Hud.enabled then return end
     if not pressed then return end
     local lply = LocalPlayer()
     if not IsValid(lply) then return end
@@ -440,6 +441,7 @@ end
 -- Paint — CHudWeaponSelection::Paint() HUDTYPE_BUCKETS
 ------------------------------------------------------------------------
 hook.Add("HUDPaint", "HL2Hud_WeaponSelection", function()
+    if not HL2Hud.enabled then return end
     -- Advance animations
     step(animAlpha)
     step(animSelAlpha)
@@ -547,7 +549,7 @@ end)
 -- Suppress native CHudWeaponSelection
 ------------------------------------------------------------------------
 hook.Add("HUDShouldDraw", "HL2Hud_WeaponSelection_Hide", function(name)
-    if name == "CHudWeaponSelection" then return false end
+    if HL2Hud.enabled and name == "CHudWeaponSelection" then return false end
 end)
 
 -- Live color sync: update local color vars from HL2Hud.Colors each frame
@@ -567,3 +569,4 @@ HL2Hud.weaponSel = {
     hide  = DoHideSelection,
     fade  = DoFadeOut,
 }
+

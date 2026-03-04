@@ -52,6 +52,7 @@ EHUD.AddToColumn("health", "hl2_aux_power",       HL2Hud.auxElem,           5)
 local aCol = EHUD.GetColumn("ammo")
 if aCol then aCol.base_element = HL2Hud.ammoElem end
 
+HL2Hud.enabled = true
 print("[GilbUtils] HL2 HUD loaded")
 
 ------------------------------------------------------------------------
@@ -63,6 +64,7 @@ concommand.Add("hl2hud_toggle", function()
     local hCol = EHUD.GetColumn("health")
     local sCol = EHUD.GetColumn("suit")
     local aCol = EHUD.GetColumn("ammo")
+    HL2Hud.enabled = hl2hud_enabled
     if hl2hud_enabled then
         hook.Add("HUDShouldDraw", "HL2Hud_HideNative", function(name)
             if name == "CHudHealth"          then return false end
@@ -71,7 +73,6 @@ concommand.Add("hl2hud_toggle", function()
             if name == "CHudAmmo"            then return false end
             if name == "CHudAmmoSecondary"   then return false end
             if name == "CHudSecondaryAmmo"   then return false end
-            if name == "CHudWeaponSelection" then return false end
         end)
         EHUD.OwnsAuxBar = true
         if hCol then hCol.base_element = HL2Hud.healthElem end
@@ -81,7 +82,6 @@ concommand.Add("hl2hud_toggle", function()
         print("[GilbUtils] HL2 HUD enabled")
     else
         hook.Remove("HUDShouldDraw", "HL2Hud_HideNative")
-        hook.Remove("HUDPaint",      "HL2Hud_WeaponSelection")
         EHUD.OwnsAuxBar = false
         if hCol then hCol.base_element = nil end
         if sCol then sCol.base_element = nil end
