@@ -13,6 +13,7 @@
 -- Alpha: full=255, dim=64. Fade in=0.5s, fade out=2.0s. Dim after 1.0s idle.
 
 local A = HL2Hud.Anim
+local cv_quickinfo = GetConVar("hud_quickinfo")
 
 local HEALTH_WARN  = 25
 local AMMO_WARN    = 0.25   -- fraction of max clip (source: 1 - CLIP_PERC_THRESHOLD)
@@ -174,6 +175,8 @@ hook.Add("HUDPaint", "HL2Hud_QuickInfo", function()
 
     local clrNormal  = mc(255, 208, 64, 255 * SCALAR)   -- ClientScheme "Normal"
     local clrCaution = Color(255, 48, 0, 255)            -- ClientScheme "Caution"
+
+    if cv_quickinfo:GetInt() == 0 then return end
 
     local sinScale = math.abs(math.sin(CurTime() * 8)) * 128  -- 0..128 (int in source)
     -- Source: healthColor[3] = 255 * sinScale where sinScale is 0..128 int → byte overflow
