@@ -29,6 +29,7 @@ include("hl2_hud/hud_battery.lua")
 include("hl2_hud/hud_suit_power.lua")
 include("hl2_hud/hud_ammo.lua")
 include("hl2_hud/hud_weapon_selection.lua")
+include("hl2_hud/hud_quickinfo.lua")
 
 -- Suppress native panels
 hook.Add("HUDShouldDraw", "HL2Hud_HideNative", function(name)
