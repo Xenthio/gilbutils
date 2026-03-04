@@ -58,7 +58,7 @@ function elem:Draw(x, y, clip_h)
     local w  = 72*s
     local h  = 36*s
     local bg = state.bgColor.cur
-    draw.RoundedBox(8, x, y, w, h, bg.a > 0 and bg or HL2Hud.Colors.BgColor)
+    HL2Hud.DrawPanel(x, y, w, h, bg.a > 0 and bg or nil)
 
     -- Label "ALT" (text_xpos=8, text_ypos=22) — fgColor
     surface.SetFont("HL2Hud_Text")

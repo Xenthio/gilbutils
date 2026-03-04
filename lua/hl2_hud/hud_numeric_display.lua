@@ -18,7 +18,7 @@ function HL2Hud.DrawNumericDisplay(x, y, label, value, state, opts)
 
     -- Background
     local bg = state.bgColor.cur
-    draw.RoundedBox(8, x, y, w, h, (bg.a > 0) and bg or C.BgColor)
+    HL2Hud.DrawPanel(x, y, w, h, (bg.a > 0) and bg or nil)
 
     -- Label — uses fgColor (same as number, per CHudNumericDisplay::PaintLabel)
     surface.SetFont("HL2Hud_Text")

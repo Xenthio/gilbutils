@@ -36,3 +36,12 @@ function HL2Hud.ApplyColors()
     if HL2Hud.auxEvent then HL2Hud.auxEvent("ColorsChanged") end
     hook.Run("HL2Hud_ColorsChanged")
 end
+
+-- HL2Hud.DrawPanel(x, y, w, h, col)
+-- Draws the standard rounded-box HUD panel background.
+-- Override this function to change the appearance of ALL HUD element backgrounds at once.
+-- col defaults to HL2Hud.Colors.BgColor if nil.
+-- corner defaults to 8 (unscaled) matching HL2 source vgui DrawBox.
+function HL2Hud.DrawPanel(x, y, w, h, col)
+    draw.RoundedBox(8, x, y, w, h, col or HL2Hud.Colors.BgColor)
+end

@@ -197,7 +197,7 @@ function ammoElem:Draw(x, y, clip_h)
     if secA > 0 and IsValid(wpn) and wpn:GetSecondaryAmmoType() ~= -1 then
         local a    = secA / 255
         local sbg  = sec.bgColor.cur
-        draw.RoundedBox(8, sx, y, secW, 36*s, Color(sbg.r, sbg.g, sbg.b, math.Round(sbg.a * a)))
+        HL2Hud.DrawPanel(sx, y, secW, 36*s, Color(sbg.r, sbg.g, sbg.b, math.Round(sbg.a * a)))
 
         local secAmmo = ply:GetAmmoCount(wpn:GetSecondaryAmmoType())
 
@@ -267,7 +267,7 @@ function ammoElem:Draw(x, y, clip_h)
     lastReserve = reserve or -1
 
     local pbg = pri.bgColor.cur
-    draw.RoundedBox(8, px, y, priW, 36*s, Color(pbg.r, pbg.g, pbg.b, pbg.a))
+    HL2Hud.DrawPanel(px, y, priW, 36*s, Color(pbg.r, pbg.g, pbg.b, pbg.a))
 
     surface.SetFont("HL2Hud_Text")
     surface.SetTextColor(pri.fgColor.cur)

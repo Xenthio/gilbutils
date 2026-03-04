@@ -337,7 +337,7 @@ end)
 ------------------------------------------------------------------------
 local function DrawBox(x, y, wide, tall, color, normalizedAlpha, number)
     surface.SetAlphaMultiplier(normalizedAlpha / 255)
-    draw.RoundedBox(CORNER_R, x, y, wide, tall, color)
+    HL2Hud.DrawPanel(x, y, wide, tall, color)
     if number >= 0 then
         surface.SetFont("HL2Hud_SelectionNumbers")
         surface.SetTextColor(m_NumberColor)
