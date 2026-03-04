@@ -171,10 +171,10 @@ hook.Add("HUDPaint", "HL2Hud_QuickInfo", function()
         return Color(r, g, b, math.Round(a * masterAlpha / 255))
     end
 
-    local clrNormal = mc(HL2Hud.Colors.FgColor.r, HL2Hud.Colors.FgColor.g, HL2Hud.Colors.FgColor.b, 255 * SCALAR)
-    local clrCaution = mc(255, 160, 0, 255)
+    local clrNormal  = mc(255, 208, 64, 255 * SCALAR)   -- ClientScheme "Normal"
+    local clrCaution = Color(255, 48, 0, 255)            -- ClientScheme "Caution"
 
-    local sinScale = math.abs(math.sin(CurTime() * 8)) * 128
+    local sinScale = math.abs(math.sin(CurTime() * 8)) * 128  -- 0..128
 
     -- === LEFT (health) ===
     if state.healthFade > 0 then
@@ -183,7 +183,7 @@ hook.Add("HUDPaint", "HL2Hud_QuickInfo", function()
         local healthPerc = math.Clamp(hp / 100, 0, 1)
         local col
         if state.warnHealth then
-            col = mc(clrCaution.r, clrCaution.g, clrCaution.b, sinScale * 255 / 128)
+            col = mc(clrCaution.r, clrCaution.g, clrCaution.b, sinScale)
         else
             col = clrNormal
         end
@@ -200,7 +200,7 @@ hook.Add("HUDPaint", "HL2Hud_QuickInfo", function()
         end
         local col
         if state.warnAmmo then
-            col = mc(clrCaution.r, clrCaution.g, clrCaution.b, sinScale * 255 / 128)
+            col = mc(clrCaution.r, clrCaution.g, clrCaution.b, sinScale)
         else
             col = clrNormal
         end
