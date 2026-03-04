@@ -212,12 +212,12 @@ local function DoFadeOut()
 end
 
 local function DoHideSelection(playSound)
-    -- CloseWeaponSelectionMenu (hudanimations.txt)
-    aset(animFgColor,   Color(0,0,0,0), "Linear", 0, 0.1)
-    aset(animTextColor, Color(0,0,0,0), "Linear", 0, 0.1)
-    aset(animAlpha,     0,              "Linear", 0, 0.1)
-    aset(animSelAlpha,  0,              "Linear", 0, 0.1)
-    -- Sound only when explicitly closing (not after fade-out timeout)
+    -- Always snap to zero — fade was DoFadeOut's job. Any remaining alpha
+    -- would draw the active weapon (not selectedWep) causing a one-frame flicker.
+    snap(animFgColor,   Color(0,0,0,0))
+    snap(animTextColor, Color(0,0,0,0))
+    snap(animAlpha,     0)
+    snap(animSelAlpha,  0)
     if playSound and isOpen then
         LocalPlayer():EmitSound("common/wpn_hudoff.wav", 75, 100, 0.32)
     end
