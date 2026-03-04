@@ -130,10 +130,8 @@ function ammoElem:GetSize()
     local priW = pri.width.cur * s
     local secA = sec.alpha.cur
     if secA > 0 then
-        -- Scale by alpha fraction so the block smoothly grows/shrinks during transition
-        -- This replicates the HudAmmo Position slide (r150→r222 / r222→r150) from source
-        local frac = secA / 255
-        return priW + math.Round((SEC_GAP * s + 60 * s) * frac), 36 * s
+        -- Full width immediately; secondary just fades in (matches native HL2/GMod behaviour)
+        return priW + (SEC_GAP * s) + (60 * s), 36 * s
     end
     return priW, 36 * s
 end
@@ -186,9 +184,7 @@ function ammoElem:Draw(x, y, clip_h)
     local secW = 60 * s
     local gapW = SEC_GAP * s
     local px   = x               -- primary: always left edge
-    -- Secondary x tracks proportionally so it slides in during transition
-    local frac = secA / 255
-    local sx   = x + priW + math.Round(gapW * frac) -- secondary slides in from gap edge
+    local sx   = x + priW + gapW -- secondary: fixed position, just fades in
 
     -- ── Secondary panel ─────────────────────────────────────────────────────
     if secA > 0 and IsValid(wpn) and wpn:GetSecondaryAmmoType() ~= -1 then

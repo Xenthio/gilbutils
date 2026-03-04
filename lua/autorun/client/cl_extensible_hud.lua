@@ -325,13 +325,8 @@ hook.Add("HUDPaint", "EHUD_Render", function()
             if col.base_element then
                 local w, h = col.base_element:GetSize()
                 if w > 0 and h > 0 then
-                    -- Smooth the column width so base_element width changes animate
-                    -- (mirrors the animStep used for native ammo column)
-                    if not col.anim_base_w then col.anim_base_w = w end
-                    col.anim_base_w = col.anim_base_w + (w - col.anim_base_w) * math.min(dt * 12, 1)
-                    local aw = col.anim_base_w
-                    colW = aw
-                    col.base_element:Draw(rx - aw, baseY + (36 * s - h), h)
+                    colW = w
+                    col.base_element:Draw(rx - w, baseY + (36 * s - h), h)
                 end
             elseif col.id == "ammo" then
                 local nativeW = EHUD.GetNativeAmmoWidth() * s
