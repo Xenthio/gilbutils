@@ -76,7 +76,7 @@ local m_TextColor     = C_TextFg
 local ICON_CHARS = {
     weapon_crowbar        = "c",
     weapon_physcannon     = "m",
-    weapon_physgun        = "m",  -- GMod gravity gun SWEP (same glyph as physcannon)
+    weapon_physgun        = "h",  -- GMod gravity gun
     weapon_stunstick      = "n",
     weapon_pistol         = "d",
     weapon_357            = "e",
@@ -88,10 +88,9 @@ local ICON_CHARS = {
     weapon_crossbow       = "g",
     weapon_rpg            = "i",
     weapon_frag           = "k",
-    weapon_slam           = "h",
-    weapon_bugbait        = "j",
-    weapon_striderbuster  = "f",
-    weapon_manhack        = "o",
+    weapon_slam           = "o",
+    weapon_bugbait        = "j", 
+    weapon_oicw           = "f",
 }
 
 ------------------------------------------------------------------------
