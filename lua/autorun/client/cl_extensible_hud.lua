@@ -325,8 +325,12 @@ hook.Add("HUDPaint", "EHUD_Render", function()
             if col.base_element then
                 local w, h = col.base_element:GetSize()
                 if w > 0 and h > 0 then
-                    colW = w
-                    col.base_element:Draw(rx - w, baseY + (36 * s - h), h)
+                    -- Smooth column width so primary panel slides when secondary appears/disappears
+                    if not col.anim_base_w then col.anim_base_w = w end
+                    col.anim_base_w = col.anim_base_w + (w - col.anim_base_w) * math.min(dt * 8, 1)
+                    local aw = math.Round(col.anim_base_w)
+                    colW = aw
+                    col.base_element:Draw(rx - aw, baseY + (36 * s - h), h)
                 end
             elseif col.id == "ammo" then
                 local nativeW = EHUD.GetNativeAmmoWidth() * s
