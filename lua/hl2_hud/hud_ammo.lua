@@ -128,9 +128,9 @@ local ammoElem = {}
 function ammoElem:GetSize()
     local s    = ScrH() / 480
     local priW = pri.width.cur * s
-    local secA = sec.alpha.cur
-    if secA > 0 then
-        -- Full width immediately; secondary just fades in (matches native HL2/GMod behaviour)
+    -- Use lastHasSec (set on weapon switch) not alpha, so EHUD starts sliding immediately
+    -- when swapping away from a secondary-ammo weapon, without waiting for fade to finish
+    if lastHasSec then
         return priW + (SEC_GAP * s) + (60 * s), 36 * s
     end
     return priW, 36 * s
