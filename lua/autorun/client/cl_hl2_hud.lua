@@ -56,6 +56,14 @@ HL2Hud.enabled = true
 print("[GilbUtils] HL2 HUD loaded")
 
 ------------------------------------------------------------------------
+-- hl2hud_gmod: when 1, inactive weapon slots collapse to GMod-style
+--              small boxes with no icons (GMod default behaviour).
+--              When 0, draws HL2-style small boxes with icons.
+------------------------------------------------------------------------
+CreateClientConVar("hl2hud_gmod", "1", true, false,
+    "Inactive weapon slots: 1=GMod style (small box, no icon), 0=HL2 style (small box with icon)")
+
+------------------------------------------------------------------------
 -- hl2hud_toggle — swap between custom and native HUD for comparison
 ------------------------------------------------------------------------
 local hl2hud_enabled = true

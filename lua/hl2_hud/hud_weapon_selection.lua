@@ -530,10 +530,19 @@ hook.Add("HUDPaint", "HL2Hud_WeaponSelection", function()
 
             xpos = xpos + largeWide
         else
-            -- Inactive slot — source always draws box regardless of showEmpty (only active slot inner positions obey it)
+            -- Inactive slot — source always draws box regardless of showEmpty
             local firstWep = GetFirstPos(ply, i)
+            local gmodStyle = GetConVar("hl2hud_gmod") and GetConVar("hl2hud_gmod"):GetBool()
             if IsValid(firstWep) then
-                DrawBox(xpos, ypos, smallSize, smallSize, m_BoxColor, alpha, i + 1)
+                if gmodStyle then
+                    -- GMod style: plain small box, no icon (collapsed 20px style)
+                    DrawBox(xpos, ypos, smallSize, smallSize, m_BoxColor, alpha, i + 1)
+                else
+                    -- HL2 style: small box WITH icon
+                    DrawWeaponIcon(firstWep, false, xpos, ypos, smallSize, smallSize,
+                                   alpha * (animAlpha.cur / 255))
+                    DrawBox(xpos, ypos, smallSize, smallSize, m_BoxColor, alpha * 0.5, i + 1)
+                end
             else
                 DrawBox(xpos, ypos, smallSize, smallSize, m_EmptyBoxColor, alpha, -1)
             end
