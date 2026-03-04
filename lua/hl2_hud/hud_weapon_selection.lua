@@ -572,15 +572,7 @@ hook.Add("HUDPaint", "HL2Hud_WeaponSelection", function()
             local firstWep = GetFirstPos(ply, i)
             local gmodStyle = GetConVar("hl2hud_gmod") and GetConVar("hl2hud_gmod"):GetBool()
             if IsValid(firstWep) then
-                if gmodStyle then
-                    -- GMod style: plain small box, no icon (collapsed 20px style)
-                    DrawBox(xpos, ypos, smallSize, smallSize, m_BoxColor, alpha, i + 1)
-                else
-                    -- HL2 style: small box WITH icon
-                    DrawWeaponIcon(firstWep, false, xpos, ypos, smallSize, smallSize,
-                                   alpha * (animAlpha.cur / 255))
-                    DrawBox(xpos, ypos, smallSize, smallSize, m_BoxColor, alpha * 0.5, i + 1)
-                end
+                DrawBox(xpos, ypos, smallSize, smallSize, m_BoxColor, alpha, i + 1)
             else
                 DrawBox(xpos, ypos, smallSize, smallSize, m_EmptyBoxColor, alpha, -1)
             end
