@@ -15,14 +15,18 @@ local snap = HL2Hud.Anim.snap
 ------------------------------------------------------------------------
 -- Layout — hudlayout.res HudWeaponSelection (proportional 480p baseline)
 ------------------------------------------------------------------------
-local SMALL     = 32   -- SmallBoxSize
-local LWIDE     = 112  -- LargeBoxWide
-local LTALL     = 80   -- LargeBoxTall
-local GAP       = 8    -- BoxGap
-local NUM_XPOS  = 4    -- SelectionNumberXPos
-local NUM_YPOS  = 4    -- SelectionNumberYPos
-local TEXT_YPOS = 64   -- TextYPos
-local PANEL_Y   = 16   -- ypos
+local SMALL     = 32         -- SmallBoxSize
+local LWIDE     = 112        -- LargeBoxWide
+local LTALL     = 80         -- LargeBoxTall
+local GAP       = 8          -- BoxGap
+local NUM_XPOS  = 4          -- SelectionNumberXPos
+local NUM_YPOS  = 4          -- SelectionNumberYPos
+local TEXT_YPOS = 64         -- TextYPos
+local PANEL_Y   = 16         -- ypos
+
+local GMOD_COLLAPSED = 20           -- TextYPos
+-- GMOD positions this from bottom of the box.
+local GMOD_TEXT_YPOS = 8            -- TextYPos 
 
 -- Corner radius to match vgui/hud/800corner textures (8px at 800px wide ≈ 6px at 480p baseline)
 -- Corner radius 8 (unscaled) matches vgui/hud/800corner texture proportions
@@ -89,7 +93,7 @@ local ICON_CHARS = {
     weapon_rpg            = "i",
     weapon_frag           = "k",
     weapon_slam           = "o",
-    weapon_bugbait        = "j", 
+    weapon_bugbait        = "j",
     weapon_oicw           = "f",
 }
 
@@ -422,6 +426,8 @@ local function DrawLargeWeaponBox(wep, bSelected, x, y, boxWide, boxTall, selCol
         surface.SetFont("HL2Hud_WeaponText")
         surface.SetTextColor(tc.r, tc.g, tc.b, ta)
 
+        local gmodStyle = GetConVar("hl2hud_gmod") and GetConVar("hl2hud_gmod"):GetBool()
+
         -- PrintName lookup: SWEPs have stored.PrintName; HL2 C++ weapons use localized string
         -- language.GetPhrase resolves "#HL2_Shotgun" etc. via loaded language files
         -- weapon:GetPrintName() handles both SWEPs and C++ weapons, returns localized name
@@ -432,6 +438,12 @@ local function DrawLargeWeaponBox(wep, bSelected, x, y, boxWide, boxTall, selCol
         local tw, _ = surface.GetTextSize(name)
         local tx    = x + math.floor((boxWide - tw) / 2)
         local ty    = y + Scale(TEXT_YPOS)
+        
+        if gmodStyle then
+            -- position from bottom of box, with GMOD_TEXT_YPOS padding (instead of TEXT_YPOS from top)
+            ty = y + boxTall - Scale(GMOD_TEXT_YPOS)
+        end
+
         surface.SetTextPos(tx, ty)
         surface.DrawText(name)
     end
@@ -468,6 +480,7 @@ hook.Add("HUDPaint", "HL2Hud_WeaponSelection", function()
     local largeTall = Scale(LTALL)
     local boxGap    = Scale(GAP)
     local panelY    = Scale(PANEL_Y)
+    local collapsedSize = Scale(GMOD_COLLAPSED)
 
     -- percentageDone = 1.0 (pickup grow removed in source)
     -- selectedColor = lerp(BoxColor, SelectedBoxColor, 1.0) = SelectedBoxColor
@@ -522,7 +535,7 @@ hook.Add("HUDPaint", "HL2Hud_WeaponSelection", function()
                     local bSel = (wep == pSel)
                     if gmodStyle and not bSel then
                         -- GMod: non-selected weapons in active slot = small collapsed box with name
-                        DrawBox(xpos, ypos, largeWide, smallSize, m_BoxColor, alpha,
+                        DrawBox(xpos, ypos, largeWide, collapsedSize, m_BoxColor, alpha,
                                 bDrawNumber and (i + 1) or -1)
                         -- Draw weapon name centered vertically in the small box
                         local tc = animTextColor.cur
@@ -532,12 +545,15 @@ hook.Add("HUDPaint", "HL2Hud_WeaponSelection", function()
                             surface.SetTextColor(tc.r, tc.g, tc.b, ta)
                             local name = wep:GetPrintName()
                             local tw, th = surface.GetTextSize(name)
-                            surface.SetTextPos(
-                                xpos + math.floor((largeWide - tw) / 2),
-                                ypos + math.floor((smallSize - th) / 2))
+                            
+                            local tx    = xpos + math.floor((largeWide - tw) / 2)
+
+                            -- In collapsed mode, position text from bottom of box with GMOD_TEXT_YPOS padding
+                            local ty = ypos + collapsedSize - Scale(GMOD_TEXT_YPOS) 
+                            surface.SetTextPos(tx, ty)
                             surface.DrawText(name)
                         end
-                        ypos = ypos + smallSize + boxGap
+                        ypos = ypos + collapsedSize + boxGap
                     else
                         DrawLargeWeaponBox(wep, bSel,
                             xpos, ypos, largeWide, largeTall,
