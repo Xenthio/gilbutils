@@ -38,7 +38,33 @@ local function resolveSpriteUVs(spr)
     return spr
 end
 
-local function loadWeaponSprites()
+local function -- Hardcoded HL1 weapon sprites (weapon_*_hl1.txt not in GAME search path)
+-- All use 170x45 pixel subrects from 640hudN sprite sheets
+local HL1_SPRITES = {
+    weapon_crowbar_hl1  = { weapon={"sprites/640hud1",0,  0  }, weapon_s={"sprites/640hud4",0,  0  } },
+    weapon_glock_hl1    = { weapon={"sprites/640hud1",0,  45 }, weapon_s={"sprites/640hud4",0,  45 } },
+    weapon_357_hl1      = { weapon={"sprites/640hud1",0,  90 }, weapon_s={"sprites/640hud4",0,  90 } },
+    weapon_mp5_hl1      = { weapon={"sprites/640hud1",0,  135}, weapon_s={"sprites/640hud4",0,  135} },
+    weapon_shotgun_hl1  = { weapon={"sprites/640hud1",0,  180}, weapon_s={"sprites/640hud4",0,  180} },
+    weapon_crossbow_hl1 = { weapon={"sprites/640hud2",0,  0  }, weapon_s={"sprites/640hud5",0,  0  } },
+    weapon_rpg_hl1      = { weapon={"sprites/640hud2",0,  45 }, weapon_s={"sprites/640hud5",0,  45 } },
+}
+local function makeHL1Entry(t)
+    return { file=t[1], px=t[2], py=t[3], srcW=170, srcH=45 }
+end
+local function registerHL1Sprites()
+    for cls, data in pairs(HL1_SPRITES) do
+        if not HL2Hud.WeaponSprites[cls] then
+            HL2Hud.WeaponSprites[cls] = {
+                weapon   = makeHL1Entry(data.weapon),
+                weapon_s = makeHL1Entry(data.weapon_s),
+            }
+        end
+    end
+end
+
+loadWeaponSprites()
+registerHL1Sprites()
     HL2Hud.WeaponSprites = {}
     local files = file.Find("scripts/weapon_*.txt", "GAME")
     for _, fname in ipairs(files) do
@@ -69,7 +95,33 @@ local function loadWeaponSprites()
     MsgN("[HL2Hud] Loaded " .. n .. " weapon sprites")
 end
 
+-- Hardcoded HL1 weapon sprites (weapon_*_hl1.txt not in GAME search path)
+-- All use 170x45 pixel subrects from 640hudN sprite sheets
+local HL1_SPRITES = {
+    weapon_crowbar_hl1  = { weapon={"sprites/640hud1",0,  0  }, weapon_s={"sprites/640hud4",0,  0  } },
+    weapon_glock_hl1    = { weapon={"sprites/640hud1",0,  45 }, weapon_s={"sprites/640hud4",0,  45 } },
+    weapon_357_hl1      = { weapon={"sprites/640hud1",0,  90 }, weapon_s={"sprites/640hud4",0,  90 } },
+    weapon_mp5_hl1      = { weapon={"sprites/640hud1",0,  135}, weapon_s={"sprites/640hud4",0,  135} },
+    weapon_shotgun_hl1  = { weapon={"sprites/640hud1",0,  180}, weapon_s={"sprites/640hud4",0,  180} },
+    weapon_crossbow_hl1 = { weapon={"sprites/640hud2",0,  0  }, weapon_s={"sprites/640hud5",0,  0  } },
+    weapon_rpg_hl1      = { weapon={"sprites/640hud2",0,  45 }, weapon_s={"sprites/640hud5",0,  45 } },
+}
+local function makeHL1Entry(t)
+    return { file=t[1], px=t[2], py=t[3], srcW=170, srcH=45 }
+end
+local function registerHL1Sprites()
+    for cls, data in pairs(HL1_SPRITES) do
+        if not HL2Hud.WeaponSprites[cls] then
+            HL2Hud.WeaponSprites[cls] = {
+                weapon   = makeHL1Entry(data.weapon),
+                weapon_s = makeHL1Entry(data.weapon_s),
+            }
+        end
+    end
+end
+
 loadWeaponSprites()
+registerHL1Sprites()
 
 -- Draw a weapon sprite icon centred in the given box.
 -- bSelected: use weapon_s sprite and apply glow alpha.
