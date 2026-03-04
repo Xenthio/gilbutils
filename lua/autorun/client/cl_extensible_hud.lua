@@ -327,7 +327,9 @@ hook.Add("HUDPaint", "EHUD_Render", function()
                 if w > 0 and h > 0 then
                     -- Smooth column width so primary panel slides when secondary appears/disappears
                     if not col.anim_base_w then col.anim_base_w = w end
-                    col.anim_base_w = col.anim_base_w + (w - col.anim_base_w) * math.min(dt * 8, 1)
+                    -- Faster when shrinking (sliding right/away) to avoid perceived delay
+                    local lerpRate = col.anim_base_w > w and (dt * 20) or (dt * 8)
+                    col.anim_base_w = col.anim_base_w + (w - col.anim_base_w) * math.min(lerpRate, 1)
                     local aw = math.Round(col.anim_base_w)
                     colW = aw
                     col.base_element:Draw(rx - aw, baseY + (36 * s - h), h)
