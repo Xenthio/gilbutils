@@ -16,9 +16,11 @@ local function lerp(a, b, t)
     return lerpColor(a, b, t)
 end
 
+-- Source: AnimationController.cpp GetInterpolatedValue()
+-- Deaccel = sqrt(t), Accel = t*t, Linear = t
 local function ease(t, interp)
-    if interp == "Deaccel" then return 1-(1-t)^2
-    elseif interp == "Accel" then return t*t end
+    if interp == "Deaccel" then return math.sqrt(t)
+    elseif interp == "Accel" then return t * t end
     return t  -- Linear
 end
 

@@ -216,11 +216,14 @@ function ammoElem:Draw(x, y, clip_h)
         local secStr = tostring(secAmmo)
         local sblur  = sec.blur.cur
         if sblur > 0 then
-            local ga = math.Clamp(sblur / 7 * 255 * a, 0, 255)
             surface.SetFont("HL2Hud_NumbersGlow")
-            surface.SetTextColor(Color(sfgR.r, sfgR.g, sfgR.b, ga))
-            surface.SetTextPos(sx + 36*s, y + 2*s)
-            surface.DrawText(secStr)
+            for fl = sblur, 0, -1 do
+                local ba = fl >= 1 and sfgR.a or (sfgR.a * fl)
+                surface.SetTextColor(Color(sfgR.r, sfgR.g, sfgR.b, math.Clamp(ba * a, 0, 255)))
+                surface.SetTextPos(sx + 36*s, y + 2*s)
+                surface.DrawText(secStr)
+                if fl < 1 then break end
+            end
         end
         surface.SetFont("HL2Hud_Numbers")
         surface.SetTextColor(sfg)
@@ -267,13 +270,17 @@ function ammoElem:Draw(x, y, clip_h)
 
     local clipStr = tostring(clip)
     local pblur   = pri.blur.cur
+    -- Source draws glow font floor(blur) times at full alpha + once at frac alpha (additive stacking)
     if pblur > 0 then
-        local ga = math.Clamp(pblur / 7 * 255, 0, 255)
         local fc = pri.fgColor.cur
         surface.SetFont("HL2Hud_NumbersGlow")
-        surface.SetTextColor(Color(fc.r, fc.g, fc.b, ga))
-        surface.SetTextPos(px + 44*s, y + 2*s)
-        surface.DrawText(clipStr)
+        for fl = pblur, 0, -1 do
+            local a = fl >= 1 and fc.a or (fc.a * fl)
+            surface.SetTextColor(Color(fc.r, fc.g, fc.b, math.Clamp(a, 0, 255)))
+            surface.SetTextPos(px + 44*s, y + 2*s)
+            surface.DrawText(clipStr)
+            if fl < 1 then break end
+        end
     end
     surface.SetFont("HL2Hud_Numbers")
     surface.SetTextColor(pri.fgColor.cur)

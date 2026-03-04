@@ -26,16 +26,20 @@ function HL2Hud.DrawNumericDisplay(x, y, label, value, state, opts)
     surface.SetTextPos(x + tx, y + ty)
     surface.DrawText(label)
 
-    -- Number + glow (blur 0-5 → glow alpha 0-255)
+    -- Number + glow: source draws glow font floor(blur) times full alpha + once at frac alpha
+    -- (additive stacking matches CHudNumericDisplay::Paint loop)
     local valStr = tostring(value)
     local blur   = state.blur.cur
     if blur > 0 then
-        local ga = math.Clamp(blur / 5 * 255, 0, 255)
         local fc = state.fgColor.cur
         surface.SetFont("HL2Hud_NumbersGlow")
-        surface.SetTextColor(Color(fc.r, fc.g, fc.b, ga))
-        surface.SetTextPos(x + dx, y + dy)
-        surface.DrawText(valStr)
+        for fl = blur, 0, -1 do
+            local a = fl >= 1 and fc.a or (fc.a * fl)
+            surface.SetTextColor(Color(fc.r, fc.g, fc.b, math.Clamp(a, 0, 255)))
+            surface.SetTextPos(x + dx, y + dy)
+            surface.DrawText(valStr)
+            if fl < 1 then break end
+        end
     end
     surface.SetFont("HL2Hud_Numbers")
     surface.SetTextColor(state.fgColor.cur)
