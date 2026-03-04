@@ -16,41 +16,58 @@ end
 
 local function parseSpriteEntry(tbl)
     if not tbl or not tbl.file then return nil end
-    local mat  = getMat(tbl.file)
-    local tw   = mat:GetInt("$realTextureWidth")  or mat:Width()
-    local th   = mat:GetInt("$realTextureHeight") or mat:Height()
-    if tw == 0 or th == 0 then tw = 512; th = 256 end  -- sane fallback
-    local x, y, w, h = tonumber(tbl.x) or 0, tonumber(tbl.y) or 0,
-                        tonumber(tbl.width) or 64, tonumber(tbl.height) or 64
+    -- Store raw pixel coords; resolve UVs at draw time once material is loaded
     return {
-        mat = mat,
-        u0 = x / tw,  v0 = y / th,
-        u1 = (x + w) / tw, v1 = (y + h) / th,
-        srcW = w, srcH = h,
+        file = tbl.file,
+        px = tonumber(tbl.x) or 0,
+        py = tonumber(tbl.y) or 0,
+        srcW = tonumber(tbl.width)  or 64,
+        srcH = tonumber(tbl.height) or 64,
     }
+end
+
+local function resolveSpriteUVs(spr)
+    if spr.mat then return spr end  -- already resolved
+    local mat = getMat(spr.file)
+    local tw = mat:Width()
+    local th = mat:Height()
+    if tw == 0 or th == 0 then return nil end  -- not loaded yet, try next frame
+    spr.mat = mat
+    spr.u0 = spr.px / tw;  spr.v0 = spr.py / th
+    spr.u1 = (spr.px + spr.srcW) / tw; spr.v1 = (spr.py + spr.srcH) / th
+    return spr
 end
 
 local function loadWeaponSprites()
     HL2Hud.WeaponSprites = {}
     local files = file.Find("scripts/weapon_*.txt", "GAME")
     for _, fname in ipairs(files) do
-        local cls = fname:match("^(.-)%.txt$")  -- strip extension
+        -- fname is just "weapon_mp5_hl1.txt" (no path)
+        local cls = fname:match("^(.-)%.txt$")
         local raw = file.Read("scripts/" .. fname, "GAME")
         if raw then
+            -- util.KeyValuesToTable lowercases all keys
             local ok, tbl = pcall(util.KeyValuesToTable, raw)
-            if ok and tbl and tbl.WeaponData and tbl.WeaponData.TextureData then
-                local td = tbl.WeaponData.TextureData
-                local sprNormal   = parseSpriteEntry(td.weapon)
-                local sprSelected = parseSpriteEntry(td.weapon_s) or sprNormal
-                if sprNormal then
-                    HL2Hud.WeaponSprites[cls] = {
-                        weapon   = sprNormal,
-                        weapon_s = sprSelected,
-                    }
+            if ok and tbl then
+                local wd = tbl.WeaponData or tbl.weapondata
+                local td = wd and (wd.TextureData or wd.texturedata)
+                if td then
+                    local sprNormal   = parseSpriteEntry(td.weapon)
+                    local sprSelected = parseSpriteEntry(td.weapon_s) or sprNormal
+                    if sprNormal then
+                        HL2Hud.WeaponSprites[cls] = {
+                            weapon   = sprNormal,
+                            weapon_s = sprSelected,
+                        }
+                    end
                 end
             end
         end
     end
+    -- dev: print loaded count
+    local n = 0
+    for _ in pairs(HL2Hud.WeaponSprites) do n = n + 1 end
+    MsgN("[HL2Hud] Loaded " .. n .. " weapon sprites")
 end
 
 loadWeaponSprites()
@@ -63,8 +80,8 @@ function HL2Hud.DrawWeaponSprite(cls, bSelected, x, y, boxWide, boxTall, fgAlpha
     local sprites = HL2Hud.WeaponSprites[cls]
     if not sprites then return false end
 
-    local spr = (bSelected and sprites.weapon_s) or sprites.weapon
-    if not spr then return false end
+    local spr = resolveSpriteUVs((bSelected and sprites.weapon_s) or sprites.weapon)
+    if not spr then return false end  -- material not loaded yet
 
     -- Scale sprite to fit box while preserving aspect
     local scale = math.min(boxWide / spr.srcW, boxTall / spr.srcH)
@@ -80,10 +97,12 @@ function HL2Hud.DrawWeaponSprite(cls, bSelected, x, y, boxWide, boxTall, fgAlpha
 
     -- Selected glow pass: draw weapon_s sprite on top at glow alpha
     if bSelected and glowAlpha and glowAlpha > 0 then
-        local sprS = sprites.weapon_s or sprites.weapon
-        surface.SetDrawColor(col.r, col.g, col.b, math.Round(fgAlpha * glowAlpha))
-        surface.SetMaterial(sprS.mat)
-        surface.DrawTexturedRectUV(dx, dy, dw, dh, sprS.u0, sprS.v0, sprS.u1, sprS.v1)
+        local sprS = resolveSpriteUVs(sprites.weapon_s or sprites.weapon)
+        if sprS then
+            surface.SetDrawColor(col.r, col.g, col.b, math.Round(fgAlpha * glowAlpha))
+            surface.SetMaterial(sprS.mat)
+            surface.DrawTexturedRectUV(dx, dy, dw, dh, sprS.u0, sprS.v0, sprS.u1, sprS.v1)
+        end
     end
 
     return true

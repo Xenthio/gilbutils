@@ -84,7 +84,6 @@ local ICON_CHARS = {
     weapon_stunstick      = "n",
     weapon_pistol         = "d",
     weapon_357            = "e",
-    weapon_alyxgun        = "c",  -- alyxgun script missing, approximate
     weapon_annabelle      = "b",
     weapon_smg1           = "a",
     weapon_ar2            = "l",
