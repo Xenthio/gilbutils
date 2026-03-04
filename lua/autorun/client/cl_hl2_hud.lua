@@ -86,7 +86,7 @@ concommand.Add("hl2hud_toggle", function()
         if hCol then hCol.base_element = nil end
         if sCol then sCol.base_element = nil end
         if aCol then aCol.base_element = nil end
-        EHUD.AddToColumn("health", "hl2_aux_power", nil, 5)
+        EHUD.RemoveFromColumn("health", "hl2_aux_power")
         print("[GilbUtils] HL2 HUD disabled — showing native GMod HUD")
     end
 end, nil, "Toggle between custom HL2 HUD and native GMod HUD")
