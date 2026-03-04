@@ -105,6 +105,15 @@ local function makeFonts()
         antialias = true,
         additive  = true,
     })
+
+    -- QuickInfo brackets (HL2cross, tall=28 at 480p baseline, additive)
+    surface.CreateFont("HL2Hud_QuickInfo", {
+        font      = "HL2cross",
+        size      = math.Round(28 * s),
+        weight    = 0,
+        antialias = true,
+        additive  = true,
+    })
 end
 
 hook.Add("OnScreenSizeChanged", "HL2Hud_Fonts", makeFonts)

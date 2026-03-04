@@ -157,7 +157,7 @@ hook.Add("HUDPaint", "HL2Hud_QuickInfo", function()
     local cx = ScrW() / 2
     local cy = ScrH() / 2
 
-    local font = "QuickInfo"
+    local font = "HL2Hud_QuickInfo"
 
     -- Measure glyph size using the full bracket char
     surface.SetFont(font)
