@@ -129,6 +129,17 @@ hook.Add("PopulateToolMenu", "HL2Hud_Settings", function()
             HL2Hud.SetTheme(data)
         end
 
-        panel:Help("Changes the HUD color scheme, font scale, and weapon selection style.\nSetting is saved automatically.")
+        -- Post-GamepadUI checkbox
+        local pgui = vgui.Create("DCheckBoxLabel", panel)
+        pgui:SetText("Post-GamepadUI font scaling")
+        pgui:SetValue(GetConVar("hl2hud_postgamepadui"):GetBool() and 1 or 0)
+        pgui:DockMargin(8, 4, 8, 0)
+        pgui:Dock(TOP)
+        pgui:SizeToContents()
+        pgui.OnChange = function(self, val)
+            RunConsoleCommand("hl2hud_postgamepadui", val and "1" or "0")
+        end
+
+        panel:Help("Changes the HUD color scheme, font scale, and weapon selection style.\nPost-GamepadUI applies proportional font scaling (HL2 2023 update style).\nSettings are saved automatically.")
     end)
 end)
