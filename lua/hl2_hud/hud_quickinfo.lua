@@ -205,7 +205,7 @@ hook.Add("HUDPaint", "HL2Hud_QuickInfo", function()
     if state.ammoFade > 0 then
         drawWarning(rx, gy, "]", state.ammoFade, clrCaution, font, masterAlpha)
     else
-        local ammoPerc = 0
+        local ammoPerc = 1  -- default full when no clip weapon (physgun, crowbar, etc.)
         if IsValid(wep) and maxClip > 0 then
             ammoPerc = math.Clamp(clip / maxClip, 0, 1)
         end
