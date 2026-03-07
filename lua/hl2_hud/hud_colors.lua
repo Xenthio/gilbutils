@@ -41,7 +41,7 @@ end
 -- Draws the standard rounded-box HUD panel background.
 -- Override this function to change the appearance of ALL HUD element backgrounds at once.
 -- col defaults to HL2Hud.Colors.BgColor if nil.
--- corner defaults to 8 (unscaled) matching HL2 source vgui DrawBox.
+-- corner radius comes from HL2Hud.CornerRadius (set by theme, default 8).
 function HL2Hud.DrawPanel(x, y, w, h, col)
-    draw.RoundedBox(8, x, y, w, h, col or HL2Hud.Colors.BgColor)
+    draw.RoundedBox(HL2Hud.CornerRadius or 8, x, y, w, h, col or HL2Hud.Colors.BgColor)
 end

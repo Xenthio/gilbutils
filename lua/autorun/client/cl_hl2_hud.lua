@@ -21,6 +21,7 @@ HL2Hud = HL2Hud or {}
 include("hl2_hud/hud_anim.lua")
 include("hl2_hud/hud_fonts.lua")
 include("hl2_hud/hud_colors.lua")
+include("hl2_hud/hud_themes.lua")
 include("hl2_hud/hud_numeric_display.lua")
 
 -- Elements
@@ -100,3 +101,34 @@ concommand.Add("hl2hud_toggle", function()
         print("[GilbUtils] HL2 HUD disabled — showing native GMod HUD")
     end
 end, nil, "Toggle between custom HL2 HUD and native GMod HUD")
+
+------------------------------------------------------------------------
+-- Spawnmenu settings panel
+------------------------------------------------------------------------
+hook.Add("PopulateToolMenu", "HL2Hud_Settings", function()
+    spawnmenu.AddToolMenuOption("Options", "HL2 HUD", "hl2hud_settings", "HL2 HUD Settings", "", "", function(panel)
+        panel:ClearControls()
+
+        local combo = vgui.Create("DComboBox", panel)
+        combo:SetWide(panel:GetWide() - 16)
+        combo:DockMargin(8, 0, 8, 4)
+        combo:Dock(TOP)
+
+        -- Populate
+        for _, name in ipairs(HL2Hud.ThemeOrder) do
+            combo:AddChoice(name, name)
+        end
+
+        -- Set current selection
+        local current = HL2Hud.ActiveTheme or "Garry's Mod"
+        for i, name in ipairs(HL2Hud.ThemeOrder) do
+            if name == current then combo:ChooseOptionID(i) break end
+        end
+
+        combo.OnSelect = function(self, index, value, data)
+            HL2Hud.SetTheme(data)
+        end
+
+        panel:Help("Changes the HUD color scheme, font scale, and weapon selection style.\nSetting is saved automatically.")
+    end)
+end)
