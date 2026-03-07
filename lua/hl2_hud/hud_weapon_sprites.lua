@@ -14,6 +14,16 @@ local function getMat(path)
 end
 
 -- Store raw pixel coords; UVs resolved lazily at draw time once material is loaded.
+-- HL2Hud.AmmoIcons[cls] = { ammo = "u", ammo2 = "z" }  (characters in WeaponIconsSmall font)
+HL2Hud.AmmoIcons = HL2Hud.AmmoIcons or {}
+
+local function parseAmmoChar(tbl)
+    if not tbl then return nil end
+    local ch = tbl.character
+    if ch and ch ~= "" then return ch end
+    return nil
+end
+
 local function parseSpriteEntry(tbl)
     if not tbl or not tbl.file then return nil end
     return {
@@ -61,6 +71,12 @@ local function loadWeaponSprites()
                             weapon   = sprNormal,
                             weapon_s = sprSelected,
                         }
+                    end
+                    -- Ammo/ammo2 icons — font+character entries in WeaponIconsSmall
+                    local ch1 = parseAmmoChar(td.ammo)
+                    local ch2 = parseAmmoChar(td.ammo2)
+                    if ch1 or ch2 then
+                        HL2Hud.AmmoIcons[cls] = { ammo = ch1, ammo2 = ch2 }
                     end
                 end
             end
@@ -133,5 +149,22 @@ function HL2Hud.DrawWeaponSprite(cls, bSelected, x, y, boxWide, boxTall, fgAlpha
         end
     end
 
+    return true
+end
+
+------------------------------------------------------------------------
+-- HL2Hud.DrawAmmoIcon(cls, isPrimary, x, y, color)
+-- Draws the ammo or ammo2 icon character at (x,y) using WeaponIconsSmall font.
+-- Returns true if drawn.
+------------------------------------------------------------------------
+function HL2Hud.DrawAmmoIcon(cls, isPrimary, x, y, color)
+    local icons = HL2Hud.AmmoIcons[cls]
+    if not icons then return false end
+    local ch = isPrimary and icons.ammo or icons.ammo2
+    if not ch then return false end
+    surface.SetFont("HL2Hud_WeaponIconsSmall")
+    surface.SetTextColor(color)
+    surface.SetTextPos(x, y)
+    surface.DrawText(ch)
     return true
 end

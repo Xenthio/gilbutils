@@ -20,6 +20,15 @@ local set  = HL2Hud.Anim.set
 local step = HL2Hud.Anim.step
 local snap = HL2Hud.Anim.snap
 
+-- hl2hud_ammo_icon 1: draw weapon inactive sprite instead of "AMMO" text label.
+-- Matches Source SDK CHudAmmo::Paint() behaviour. Default off (GMod style), HL2 themes enable it.
+CreateClientConVar("hl2hud_ammo_icon", "0", true, false, "Show weapon sprite in ammo panel (HL2 style)")
+
+local make = HL2Hud.Anim.make
+local set  = HL2Hud.Anim.set
+local step = HL2Hud.Anim.step
+local snap = HL2Hud.Anim.snap
+
 local pri = {
     fgColor    = make(Color(255,220,0,255)),
     bgColor    = make(Color(0,0,0,76)),
@@ -192,6 +201,7 @@ function ammoElem:Draw(x, y, clip_h)
     local px   = x               -- primary: always left edge
     -- Secondary is pinned to right edge (r76 = scrW-margin-secW) so it never slides
     local sx   = ScrW() - EHUD.MARGIN * s - 60 * s
+    local showIcon = GetConVar("hl2hud_ammo_icon"):GetBool()
 
     -- ── Secondary panel ─────────────────────────────────────────────────────
     if secA > 0 and IsValid(wpn) and wpn:GetSecondaryAmmoType() ~= -1 then
@@ -216,6 +226,14 @@ function ammoElem:Draw(x, y, clip_h)
 
         surface.SetFont("HL2Hud_Text")
         surface.SetTextColor(sfg)
+
+        if showIcon and IsValid(wpn) then
+            surface.SetFont("HL2Hud_WeaponIconsSmall")
+            local _, iconH = surface.GetTextSize("A")
+            HL2Hud.DrawAmmoIcon(wpn:GetClass(), false, sx + 8*s, y + 22*s - iconH, sfg)
+            surface.SetFont("HL2Hud_Text")
+            surface.SetTextColor(sfg)
+        end
         surface.SetTextPos(sx + 8*s, y + 22*s)
         surface.DrawText("ALT")
 
@@ -271,6 +289,15 @@ function ammoElem:Draw(x, y, clip_h)
 
     surface.SetFont("HL2Hud_Text")
     surface.SetTextColor(pri.fgColor.cur)
+
+    if showIcon and IsValid(wpn) then
+        -- Source: icon drawn at (text_xpos, text_ypos - icon_height) — sits directly above "AMMO"
+        surface.SetFont("HL2Hud_WeaponIconsSmall")
+        local _, iconH = surface.GetTextSize("A")  -- representative glyph height
+        HL2Hud.DrawAmmoIcon(wpn:GetClass(), true, px + 8*s, y + 20*s - iconH, pri.fgColor.cur)
+        surface.SetFont("HL2Hud_Text")
+        surface.SetTextColor(pri.fgColor.cur)
+    end
     surface.SetTextPos(px + 8*s, y + 20*s)
     surface.DrawText("AMMO")
 

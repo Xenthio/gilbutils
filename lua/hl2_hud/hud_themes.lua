@@ -17,7 +17,7 @@
 --   QuickInfo:            28 → 36
 --   HudHintTextLarge:     14 → 22
 --   HudHintTextSmall:     11 → 18
---   Colors: identical across all three sources.
+--   Colours: seemingly almost identical across all three sources, except for the alpha of FgColor (255 in GMod vs 100 in HL2 themes).
 
 if not CLIENT then return end
 
@@ -75,6 +75,7 @@ HL2Hud.Themes = {
         label           = "Half-Life 2",
         fontScale       = 480,
         weaponSelection = "hl2",
+        ammoIcon        = true,
         cornerRadius    = 8,
         fontSizes = {
             -- SDK2013 — same sizes as GMod but with hidefWeaponIcons at >= 1080p
@@ -93,6 +94,7 @@ HL2Hud.Themes = {
         label           = "Half-Life 2 (Post Steam Deck Update)",
         fontScale       = 480,
         weaponSelection = "hl2",
+        ammoIcon        = true,
         cornerRadius    = 8,
         fontSizes = {
             -- WIN32 desktop values only ([$DECK]/[$LINUX] ignored)
@@ -150,6 +152,8 @@ function HL2Hud.SetTheme(name)
 
     -- Weapon selection mode
     RunConsoleCommand("hl2hud_gmod", theme.weaponSelection == "gmod" and "1" or "0")
+    -- Ammo icon: HL2 themes show weapon sprite, GMod theme uses text label
+    RunConsoleCommand("hl2hud_ammo_icon", theme.ammoIcon and "1" or "0")
 
     -- Rebuild fonts with new sizes/scale
     hook.Run("HL2Hud_RebuildFonts")
