@@ -89,8 +89,8 @@ HL2Hud.Themes = {
         Colors = hl2Colors(),
     },
 
-    ["Half-Life 2 (Post GamepadUI)"] = {
-        label           = "Half-Life 2 (Post GamepadUI)",
+    ["Half-Life 2 (Post Steam Deck Update)"] = {
+        label           = "Half-Life 2 (Post Steam Deck Update)",
         fontScale       = 480,
         weaponSelection = "hl2",
         cornerRadius    = 8,
