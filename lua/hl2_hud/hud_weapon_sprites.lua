@@ -121,7 +121,7 @@ registerHL1Sprites()
 
 -- Draw a weapon sprite icon centred in the given box.
 -- Returns true if drawn, false if no sprite found (caller should try next fallback).
-function HL2Hud.DrawWeaponSprite(cls, bSelected, x, y, boxWide, boxTall, fgAlpha, glowAlpha)
+function HL2Hud.DrawWeaponSprite(cls, bSelected, x, y, boxWide, boxTall, fgAlpha, glowAlpha, color)
     local sprites = HL2Hud.WeaponSprites[cls]
     if not sprites then return false end
 
@@ -134,7 +134,7 @@ function HL2Hud.DrawWeaponSprite(cls, bSelected, x, y, boxWide, boxTall, fgAlpha
     local dx = x + math.floor((boxWide - dw) / 2)
     local dy = y + math.floor((boxTall - dh) / 2)
 
-    local col = HL2Hud.Colors.FgColor
+    local col = color or HL2Hud.Colors.FgColor
     surface.SetDrawColor(col.r, col.g, col.b, fgAlpha)
     surface.SetMaterial(spr.mat)
     surface.DrawTexturedRectUV(dx, dy, dw, dh, spr.u0, spr.v0, spr.u1, spr.v1)

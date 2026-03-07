@@ -24,11 +24,6 @@ local snap = HL2Hud.Anim.snap
 -- Matches Source SDK CHudAmmo::Paint() behaviour. Default off (GMod style), HL2 themes enable it.
 CreateClientConVar("hl2hud_ammo_icon", "0", true, false, "Show weapon sprite in ammo panel (HL2 style)")
 
-local make = HL2Hud.Anim.make
-local set  = HL2Hud.Anim.set
-local step = HL2Hud.Anim.step
-local snap = HL2Hud.Anim.snap
-
 local pri = {
     fgColor    = make(Color(255,220,0,255)),
     bgColor    = make(Color(0,0,0,76)),
@@ -55,7 +50,36 @@ local lastHasSec  = nil   -- nil = never initialized (force fire on first weapon
 local lastHasClip = nil
 
 local function priEvent(name)
-    local C = HL2Hud.Colors
+    local C   = HL2Hud.Colors
+    local css = HL2Hud.GetLayout("ammo").glow_font == false  -- CSS marker
+
+    if css then
+        -- ── CSS ammo animations (hudanimations.txt) ─────────────────────────
+        -- PrimaryAmmoIncrement: FgColor→Orange(full), Accel 3s back to OrangeDim
+        -- PrimaryAmmoDecrement: FgColor→HudIcon_Red,  Accel 3s back to OrangeDim
+        -- PrimaryAmmoEmpty: no event in CSS hudanimations
+        if name == "AmmoIncreased" then
+            set(pri.fgColor,    C.BrightFg,  "Linear",  0,    0.01)
+            set(pri.fgColor,    C.FgColor,   "Accel",   0.01, 3.0)
+        elseif name == "AmmoDecreased" then
+            set(pri.fgColor,    C.DamagedFg, "Linear",  0,    0.0001)
+            set(pri.fgColor,    C.FgColor,   "Accel",   0.0001, 3.0)
+        elseif name == "WeaponChanged" then
+            snap(pri.fgColor,    C.FgColor)
+            snap(pri.bgColor,    C.BgColor)
+            snap(pri.ammo2color, C.FgColor)
+        elseif name == "ColorsChanged" then
+            snap(pri.fgColor,    C.FgColor)
+            snap(pri.bgColor,    C.BgColor)
+            snap(pri.ammo2color, C.FgColor)
+            snap(sec.fgColor,    C.FgColor)
+            snap(sec.bgColor,    C.BgColor)
+        end
+        -- width/secondary events: CSS is right-anchored so width doesn't matter
+        return
+    end
+
+    -- ── HL2 ammo animations ──────────────────────────────────────────────────
     if name == "AmmoIncreased" then
         set(pri.fgColor,    C.BrightFg,           "Linear",  0,    0.15)
         set(pri.fgColor,    C.FgColor,            "Deaccel", 0.15, 1.5)
@@ -88,9 +112,7 @@ local function priEvent(name)
     elseif name == "WeaponDoesNotUseClips" then
         set(pri.width,      100,                  "Deaccel", 0,    0.4)
     elseif name == "WeaponUsesSecondaryAmmo" then
-        -- Primary width stays 132; room for secondary is via GetSize() expanding total block
         set(pri.width,      132,                  "Deaccel", 0,    0.4)
-    -- WeaponDoesNotUseSecondaryAmmo has no primary position change in hudanimations.txt
     elseif name == "ColorsChanged" then
         snap(pri.fgColor,    C.FgColor)
         snap(pri.bgColor,    C.BgColor)
@@ -141,14 +163,18 @@ end
 local ammoElem = {}
 
 function ammoElem:GetSize()
-    local s    = ScrH() / 480
-    local priW = pri.width.cur * s
-    -- Use lastHasSec (set on weapon switch) not alpha, so EHUD starts sliding immediately
-    -- when swapping away from a secondary-ammo weapon, without waiting for fade to finish
-    if lastHasSec then
-        return priW + (SEC_GAP * s) + (60 * s), 36 * s
+    local s      = ScrH() / 480
+    local layout = HL2Hud.GetLayout("ammo")
+    -- CSS: fixed width from layout.wide (right-anchored, not EHUD-positioned)
+    -- HL2: animated pri.width.cur
+    local priW = layout.right and (layout.wide or 136) * s or pri.width.cur * s
+    local h    = (layout.tall or 36) * s
+    -- Secondary only for HL2-style (CSS has no secondary panel)
+    local secLayout = HL2Hud.GetLayout("ammo_secondary")
+    if secLayout and lastHasSec then
+        return priW + (SEC_GAP * s) + ((secLayout.wide or 60) * s), h
     end
-    return priW, 36 * s
+    return priW, h
 end
 
 function ammoElem:Draw(x, y, clip_h)
@@ -193,69 +219,18 @@ function ammoElem:Draw(x, y, clip_h)
         end
     end
 
-    -- ── Geometry ────────────────────────────────────────────────────────────
-    local priW = pri.width.cur * s
-    local secA = sec.alpha.cur
-    local secW = 60 * s
-    local gapW = SEC_GAP * s
-    local px   = x               -- primary: always left edge
-    -- Secondary is pinned to right edge (r76 = scrW-margin-secW) so it never slides
-    local sx   = ScrW() - EHUD.MARGIN * s - 60 * s
-    local showIcon = GetConVar("hl2hud_ammo_icon"):GetBool()
 
-    -- ── Secondary panel ─────────────────────────────────────────────────────
-    if secA > 0 and IsValid(wpn) and wpn:GetSecondaryAmmoType() ~= -1 then
-        local a    = secA / 255
-        local sbg  = sec.bgColor.cur
-        HL2Hud.DrawPanel(sx, y, secW, 36*s, Color(sbg.r, sbg.g, sbg.b, math.Round(sbg.a * a)))
+    -- ── Draw ─────────────────────────────────────────────────────────────────
+    -- All positional values come from the active theme's ammo layout.
+    -- Handles HL2 (flat panel, glow, label) and CSS (rounded, indent, bar, icon)
+    -- without any theme-name checks in the draw code.
+    local layout    = HL2Hud.GetLayout("ammo")
+    local secLayout = HL2Hud.GetLayout("ammo_secondary")
 
-        local secAmmo = ply:GetAmmoCount(wpn:GetSecondaryAmmoType())
+    -- x: layout.right = right-anchored absolute from screen right; otherwise EHUD-provided x
+    local px = layout.right and (ScrW() - layout.right * s) or x
 
-        -- Secondary ammo change events
-        if lastSecAmmo >= 0 then
-            if secAmmo ~= lastSecAmmo then
-                if secAmmo == 0 then secEvent("AmmoSecondaryEmpty")
-                elseif secAmmo > lastSecAmmo then secEvent("AmmoSecondaryIncreased")
-                else secEvent("AmmoSecondaryDecreased") end
-            end
-        end
-        lastSecAmmo = secAmmo
-
-        local sfgR = sec.fgColor.cur
-        local sfg  = Color(sfgR.r, sfgR.g, sfgR.b, math.Round(sfgR.a * a))
-
-        surface.SetFont("HL2Hud_Text")
-        surface.SetTextColor(sfg)
-
-        if showIcon and IsValid(wpn) then
-            surface.SetFont("HL2Hud_WeaponIconsSmall")
-            local _, iconH = surface.GetTextSize("A")
-            HL2Hud.DrawAmmoIcon(wpn:GetClass(), false, sx + 8*s, y + 22*s - iconH, sfg)
-            surface.SetFont("HL2Hud_Text")
-            surface.SetTextColor(sfg)
-        end
-        surface.SetTextPos(sx + 8*s, y + 22*s)
-        surface.DrawText("ALT")
-
-        local secStr = tostring(secAmmo)
-        local sblur  = sec.blur.cur
-        if sblur > 0 then
-            surface.SetFont("HL2Hud_NumbersGlow")
-            for fl = sblur, 0, -1 do
-                local ba = fl >= 1 and sfgR.a or (sfgR.a * fl)
-                surface.SetTextColor(Color(sfgR.r, sfgR.g, sfgR.b, math.Clamp(ba * a, 0, 255)))
-                surface.SetTextPos(sx + 36*s, y + 2*s)
-                surface.DrawText(secStr)
-                if fl < 1 then break end
-            end
-        end
-        surface.SetFont("HL2Hud_Numbers")
-        surface.SetTextColor(sfg)
-        surface.SetTextPos(sx + 36*s, y + 2*s)
-        surface.DrawText(secStr)
-    end
-
-    -- ── Primary panel ───────────────────────────────────────────────────────
+    -- ── Clip / reserve values ────────────────────────────────────────────────
     if not IsValid(wpn) or wpn:GetPrimaryAmmoType() == -1 then return end
 
     local clip = wpn:Clip1()
@@ -269,63 +244,155 @@ function ammoElem:Draw(x, y, clip_h)
 
     if lastClip >= 0 then
         if clip ~= lastClip then
-            if clip == 0 then          priEvent("AmmoEmpty")
+            if clip == 0 then           priEvent("AmmoEmpty")
             elseif clip > lastClip then priEvent("AmmoIncreased")
-            else                       priEvent("AmmoDecreased") end
+            else                        priEvent("AmmoDecreased") end
         end
         if reserve >= 0 and reserve ~= lastReserve then
-            if reserve == 0 then           priEvent("Ammo2Empty")
+            if reserve == 0 then            priEvent("Ammo2Empty")
             elseif reserve > lastReserve then priEvent("Ammo2Increased")
-            else                           priEvent("Ammo2Decreased") end
+            else                            priEvent("Ammo2Decreased") end
         end
     end
-    -- Note: no snap on first frame — WeaponChanged fires in the weapon-switch block
-    -- and sets up the flash animation. Snapping here would clobber it.
     lastClip    = clip
     lastReserve = reserve or -1
 
-    local pbg = pri.bgColor.cur
-    HL2Hud.DrawPanel(px, y, priW, 36*s, Color(pbg.r, pbg.g, pbg.b, pbg.a))
+    -- ── Secondary panel ──────────────────────────────────────────────────────
+    local secA = sec.alpha.cur
+    if secLayout and secA > 0 and IsValid(wpn) and wpn:GetSecondaryAmmoType() ~= -1 then
+        local a    = secA / 255
+        local sbg  = sec.bgColor.cur
+        local sw   = (secLayout.wide or 60) * s
+        local sh   = (secLayout.tall or 36) * s
+        local sx   = ScrW() - EHUD.MARGIN * s - sw
+        HL2Hud.DrawPanel(sx, y, sw, sh, Color(sbg.r, sbg.g, sbg.b, math.Round(sbg.a * a)))
 
-    surface.SetFont("HL2Hud_Text")
-    surface.SetTextColor(pri.fgColor.cur)
+        local secAmmo = ply:GetAmmoCount(wpn:GetSecondaryAmmoType())
+        if lastSecAmmo >= 0 and secAmmo ~= lastSecAmmo then
+            if secAmmo == 0 then              secEvent("AmmoSecondaryEmpty")
+            elseif secAmmo > lastSecAmmo then secEvent("AmmoSecondaryIncreased")
+            else                              secEvent("AmmoSecondaryDecreased") end
+        end
+        lastSecAmmo = secAmmo
 
-    if showIcon and IsValid(wpn) then
-        -- Source: icon drawn at (text_xpos, text_ypos - icon_height) — sits directly above "AMMO"
-        surface.SetFont("HL2Hud_WeaponIconsSmall")
-        local _, iconH = surface.GetTextSize("A")  -- representative glyph height
-        HL2Hud.DrawAmmoIcon(wpn:GetClass(), true, px + 8*s, y + 20*s - iconH, pri.fgColor.cur)
-        surface.SetFont("HL2Hud_Text")
-        surface.SetTextColor(pri.fgColor.cur)
+        local sfgR = sec.fgColor.cur
+        local sfg  = Color(sfgR.r, sfgR.g, sfgR.b, math.Round(sfgR.a * a))
+        local secState = {
+            fgColor = { cur = sfg },
+            bgColor = { cur = Color(0,0,0,0) },
+            blur    = sec.blur,
+        }
+        HL2Hud.DrawElement(sx, y, secAmmo, secState, secLayout)
+
+        -- Ammo-type icon above label (HL2 style, if theme enables icons)
+        if GetConVar("hl2hud_ammo_icon"):GetBool() and IsValid(wpn) then
+            surface.SetFont("HL2Hud_WeaponIconsSmall")
+            local _, iconH = surface.GetTextSize("A")
+            local lx = sx + (secLayout.text_xpos or 8) * s
+            local ly = y  + (secLayout.text_ypos or 22) * s
+            HL2Hud.DrawAmmoIcon(wpn:GetClass(), false, lx, ly - iconH, sfg)
+        end
     end
-    surface.SetTextPos(px + 8*s, y + 20*s)
-    surface.DrawText("AMMO")
 
-    local clipStr = tostring(clip)
-    local pblur   = pri.blur.cur
-    -- Source draws glow font floor(blur) times at full alpha + once at frac alpha (additive stacking)
-    if pblur > 0 then
-        local fc = pri.fgColor.cur
-        surface.SetFont("HL2Hud_NumbersGlow")
+    -- ── Primary panel ────────────────────────────────────────────────────────
+    local priW = layout.right and layout.wide * s or pri.width.cur * s
+    local ph   = (layout.tall or 36) * s
+    local fc   = pri.fgColor.cur
+    local pbg  = pri.bgColor.cur
+
+    -- Background
+    if pbg.a > 0 then
+        if layout.panel == "rounded" then
+            local r = math.Round((layout.corner_radius or 4) * s)
+            draw.RoundedBox(r, px, y, priW, ph, pbg)
+        else
+            HL2Hud.DrawPanel(px, y, priW, ph, pbg)
+        end
+    end
+
+    -- Label text (HL2: "AMMO") or weapon sprite icon above label
+    if layout.label then
+        local tx = px + (layout.text_xpos or 8) * s
+        local ty = y  + (layout.text_ypos or 20) * s
+        if GetConVar("hl2hud_ammo_icon"):GetBool() and IsValid(wpn) then
+            surface.SetFont("HL2Hud_WeaponIconsSmall")
+            local _, iconH = surface.GetTextSize("A")
+            HL2Hud.DrawAmmoIcon(wpn:GetClass(), true, tx, ty - iconH, fc)
+        end
+        surface.SetFont(layout.text_font or "HL2Hud_Text")
+        surface.SetTextColor(fc.r, fc.g, fc.b, fc.a)
+        surface.SetTextPos(tx, ty)
+        surface.DrawText(layout.label)
+    end
+
+    -- Primary number + glow (CHudNumericDisplay::Paint loop)
+    local dx    = px + (layout.digit_xpos or 44) * s
+    local dy    = y  + (layout.digit_ypos or 2) * s
+    local font  = layout.font or "HL2Hud_Numbers"
+    local pblur = pri.blur.cur
+
+    local function drawNumber(f, nx, ny, val)
+        surface.SetFont(f)
+        if layout.indent then
+            local cw = surface.GetTextSize("0")
+            if val < 100 then nx = nx + cw end
+            if val < 10  then nx = nx + cw end
+        end
+        surface.SetTextPos(nx, ny)
+        surface.DrawText(tostring(val))
+    end
+
+    if pblur > 0 and layout.glow_font ~= false then
+        local gf = layout.glow_font or "HL2Hud_NumbersGlow"
         for fl = pblur, 0, -1 do
             local a = fl >= 1 and fc.a or (fc.a * fl)
             surface.SetTextColor(Color(fc.r, fc.g, fc.b, math.Clamp(a, 0, 255)))
-            surface.SetTextPos(px + 44*s, y + 2*s)
-            surface.DrawText(clipStr)
+            drawNumber(gf, dx, dy, clip)
             if fl < 1 then break end
         end
     end
-    surface.SetFont("HL2Hud_Numbers")
-    surface.SetTextColor(pri.fgColor.cur)
-    surface.SetTextPos(px + 44*s, y + 2*s)
-    surface.DrawText(clipStr)
+    surface.SetTextColor(fc.r, fc.g, fc.b, fc.a)
+    drawNumber(font, dx, dy, clip)
 
-    -- Reserve: no glow (hudanimations.txt only animates ammo2color, not Blur)
-    if reserve and reserve >= 0 then
-        surface.SetFont("HL2Hud_NumbersSmall")
-        surface.SetTextColor(pri.ammo2color.cur)
-        surface.SetTextPos(px + 98*s, y + 16*s)
+    -- Separator bar (CSS: bar_xpos/bar_ypos/bar_width/bar_height)
+    if layout.bar_xpos and reserve >= 0 then
+        surface.SetDrawColor(fc.r, fc.g, fc.b, fc.a)
+        surface.DrawRect(
+            px + layout.bar_xpos   * s,
+            y  + layout.bar_ypos   * s,
+            layout.bar_width       * s,
+            layout.bar_height      * s
+        )
+    end
+
+    -- Reserve / secondary count (digit2)
+    -- CSS source: PaintNumbers(m_hNumberFont, x, digit2_ypos, m_iAmmo2)
+    -- Same font and indent logic as clip — small_font only used for HL2 reserve display
+    if layout.digit2_xpos and reserve >= 0 then
+        local d2x   = px + layout.digit2_xpos * s
+        local d2y   = y  + layout.digit2_ypos * s
+        -- CSS uses same font as primary; HL2 uses small_font for reserve
+        local sfnt  = layout.small_font or layout.font or "HL2Hud_NumbersSmall"
+        local rc    = (layout.glow_font == false) and fc or pri.ammo2color.cur
+        surface.SetFont(sfnt)
+        surface.SetTextColor(rc.r, rc.g, rc.b, rc.a)
+        if layout.indent then
+            local cw = surface.GetTextSize("0")
+            if reserve < 100 then d2x = d2x + cw end
+            if reserve < 10  then d2x = d2x + cw end
+        end
+        surface.SetTextPos(d2x, d2y)
         surface.DrawText(tostring(reserve))
+    end
+
+    -- Ammo-type icon (CSS: ammo_icon_xpos/ammo_icon_ypos)
+    if layout.ammo_icon_xpos and IsValid(wpn) then
+        HL2Hud.DrawCSSAmmoIcon(
+            wpn:GetClass(),
+            px + layout.ammo_icon_xpos * s,
+            y  + layout.ammo_icon_ypos * s,
+            fc
+        )
     end
 end
 

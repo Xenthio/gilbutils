@@ -55,14 +55,19 @@ local function hl2Colors()
 end
 
 local function cssColors()
+    -- Source: clientscheme.res (CSS) + hudanimations.txt
+    -- FgColor default = OrangeDim (255 176 0 120) — dim rest state
+    -- BrightFg = Orange (255 176 0 255) — full alpha flash on events
+    -- DamagedFg = HudIcon_Red (160 0 0 255) — damage/low health
+    -- BgColor = bgcolor_override from hudlayout.res = 0 0 0 96 (not TransparentBlack)
+    -- No DamagedBg (CSS never flashes the panel background red)
     return {
-        -- CSS uses Orange (255 176 0) instead of yellow, full alpha, darker bg
-        FgColor         = Color(255, 176,   0, 255),  -- "Orange" full alpha
-        BrightFg        = Color(255, 220,   0, 255),  -- selection highlights stay yellow
-        DamagedFg       = Color(180,   0,   0, 230),
-        BrightDamagedFg = Color(255,   0,   0, 255),
-        BgColor         = Color(  0,   0,   0, 196),  -- "TransparentBlack" — much more opaque
-        DamagedBg       = Color(180,   0,   0, 200),
+        FgColor         = Color(255, 176,   0, 120),  -- OrangeDim: default dim rest state
+        BrightFg        = Color(255, 176,   0, 255),  -- Orange: full alpha, flash on events
+        DamagedFg       = Color(160,   0,   0, 255),  -- HudIcon_Red: low health / damage
+        BrightDamagedFg = Color(160,   0,   0, 255),  -- same (CSS has no extra-bright red)
+        BgColor         = Color(  0,   0,   0,  96),  -- bgcolor_override from hudlayout.res
+        DamagedBg       = Color(  0,   0,   0,  96),  -- CSS never flashes panel red — same as BgColor
         AuxHigh         = Color(255, 176,   0, 220),
         AuxLow          = Color(255,   0,   0, 220),
         AuxDisabled     = 70,
@@ -95,6 +100,118 @@ local hl2FontSizes = {
 ------------------------------------------------------------------------
 -- Theme definitions
 ------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+-- Default layouts (HL2/GMod style — CHudNumericDisplay defaults)
+-- hudlayout.res WIN32 values. Elements fall back to these when the
+-- active theme doesn't override a layout.
+------------------------------------------------------------------------
+HL2Hud.DefaultLayouts = {
+    -- CHudHealth: xpos=16 ypos=432 wide=102 tall=36
+    --   digit_xpos=50 digit_ypos=2  text_xpos=8 text_ypos=20
+    health = {
+        wide       = 102,   tall       = 36,
+        panel      = "flat",
+        font       = "HL2Hud_Numbers",
+        glow_font  = "HL2Hud_NumbersGlow",
+        digit_xpos = 50,    digit_ypos = 2,
+        text_xpos  = 8,     text_ypos  = 20,
+        label      = "HEALTH",
+    },
+    -- CHudBattery: xpos=140 ypos=432 wide=108 tall=36
+    --   digit_xpos=50 digit_ypos=2  text_xpos=8 text_ypos=20
+    battery = {
+        wide       = 108,   tall       = 36,
+        panel      = "flat",
+        font       = "HL2Hud_Numbers",
+        glow_font  = "HL2Hud_NumbersGlow",
+        digit_xpos = 50,    digit_ypos = 2,
+        text_xpos  = 8,     text_ypos  = 20,
+        label      = "SUIT",
+    },
+    -- CHudAmmo primary: wide=136 (animated), digit_xpos=44 digit_ypos=2
+    --   text_xpos=8 text_ypos=20
+    --   digit2_xpos=98 digit2_ypos=16  (reserve, HudNumbersSmall)
+    ammo = {
+        wide        = 136,  tall        = 36,
+        panel       = "flat",
+        font        = "HL2Hud_Numbers",
+        glow_font   = "HL2Hud_NumbersGlow",
+        small_font  = "HL2Hud_NumbersSmall",
+        digit_xpos  = 44,   digit_ypos  = 2,
+        digit2_xpos = 98,   digit2_ypos = 16,
+        text_xpos   = 8,    text_ypos   = 20,
+        label       = "AMMO",
+    },
+    -- CHudAmmo secondary (alt-fire grenade etc): wide=60
+    --   digit_xpos=36 digit_ypos=2  text_xpos=8 text_ypos=22
+    ammo_secondary = {
+        wide       = 60,    tall       = 36,
+        panel      = "flat",
+        font       = "HL2Hud_Numbers",
+        glow_font  = "HL2Hud_NumbersGlow",
+        digit_xpos = 36,    digit_ypos = 2,
+        text_xpos  = 8,     text_ypos  = 22,
+        label      = "ALT",
+    },
+}
+
+------------------------------------------------------------------------
+-- CSS layouts
+-- cs_hud_health.cpp / cs_hud_ammo.cpp + hudlayout.res
+--   panel = "rounded" (PaintBackgroundType 2, ~4px corner radius)
+--   indent = true     (CHudNumericDisplay::SetIndent — pads to 3 chars)
+--   digit_ypos = -4   (direct offset from panel ypos, intentionally overhangs)
+--   icon_ypos  = -4   (same)
+------------------------------------------------------------------------
+local cssLayouts = {
+    -- CHudHealth: xpos=8 ypos=446 wide=80 tall=25
+    --   icon drawn via DrawSelf (proportional to tall-YRES(2)), font glyph approx same
+    --   digit_xpos=35 digit_ypos=-4  (direct panel-relative, negative = overhang above)
+    --   abs_x/abs_y = absolute hudlayout position in 480p units (bypasses EHUD margin system)
+    health = {
+        wide        = 80,    tall        = 25,
+        panel       = "rounded",
+        font        = "CSS_Numbers",
+        glow_font   = false,
+        indent      = true,
+        digit_xpos  = 35,    digit_ypos  = -4,
+        icon_char   = "b",   icon_font   = "CSS_Icons",
+        icon_xpos   = 8,     icon_ypos   = -4,
+    },
+    -- CHudArmor: xpos=148 ypos=446 wide=80 tall=25
+    --   Always draws (ShouldDraw checks IsObserver only, not armor value)
+    battery = {
+        wide        = 80,    tall        = 25,
+        panel       = "rounded",
+        font        = "CSS_Numbers",
+        glow_font   = false,
+        indent      = true,
+        digit_xpos  = 34,    digit_ypos  = -4,
+        icon_char   = "a",   icon_font   = "CSS_Icons",
+        icon_xpos   = 8,     icon_ypos   = -4,
+    },
+    -- CHudAmmo: xpos=r157 ypos=446 wide=142 tall=25
+    --   Reserve uses SAME font/indent as clip (m_hNumberFont, not a small font)
+    --   digit2_xpos=63: reserve x with same indent logic as clip
+    --   bar: additive white texture rect
+    --   icon: gWR.GetAmmoIconFromWeapon, drawn at icon_xpos/ypos
+    ammo = {
+        wide        = 142,   tall        = 25,
+        right       = 157,   -- xpos=r157 (right-anchored, absolute from right edge)
+        panel       = "rounded",
+        font        = "CSS_Numbers",
+        glow_font   = false,
+        -- No small_font: CSS uses same HudNumbers font for both clip and reserve
+        indent      = true,
+        digit_xpos  = 8,     digit_ypos  = -4,
+        digit2_xpos = 63,    digit2_ypos = -4,
+        bar_xpos    = 53,    bar_ypos    = 3,
+        bar_width   = 2,     bar_height  = 20,
+        ammo_icon_xpos = 110, ammo_icon_ypos = 2,
+    },
+    ammo_secondary = false,  -- CSS has no secondary ammo panel (false = explicit disable, nil would fall through to DefaultLayouts)
+}
 
 HL2Hud.Themes = {
     ["Garry's Mod"] = {
@@ -130,11 +247,17 @@ HL2Hud.Themes = {
     ["Counter-Strike: Source"] = {
         label           = "Counter-Strike: Source",
         fontScale       = 480,
-        weaponSelection = "hl2",
+        weaponSelection = "css",
         ammoIcon        = true,
         cornerRadius    = 8,
         fontSizes       = hl2FontSizes,
-        Colors          = cssColors(),  -- orange FgColor, opaque BgColor (TransparentBlack=196 alpha)
+        Colors          = cssColors(),
+        layouts         = cssLayouts,
+        -- EHUD layout: CSS panels at ypos=446, tall=25 (480p hudlayout units)
+        -- EHUD bottom-aligns in a 36-unit row: drawY = baseY + (36-tall)*s = baseY + 11*s
+        -- We want drawY = 446*s → baseY = 435*s → BASE_Y_OFFSET = 480-435 = 45
+        -- COL_GAP: health wide=80, armor xpos=148 → gap = 148-80-8 = 60 units
+        ehudLayout      = { marginLeft = 8, marginRight = 16, baseYOffset = 45, colGap = 60 },
     },
 }
 
@@ -208,9 +331,22 @@ function HL2Hud.SetTheme(name)
     end
     HL2Hud.ApplyColors()
 
-    -- Weapon selection / ammo icon convars
+    -- Weapon selection mode: "gmod", "hl2", or "css"
     RunConsoleCommand("hl2hud_gmod",      theme.weaponSelection == "gmod" and "1" or "0")
     RunConsoleCommand("hl2hud_ammo_icon", theme.ammoIcon and "1" or "0")
+    -- Store selection mode for CSS dispatch (HL2Hud_WeaponSelectionPaint hook reads ActiveTheme)
+
+    -- Apply EHUD layout margins for this theme
+    -- CSS: health at xpos=8, ypos=446 → marginLeft=8, baseYOffset=34 (480-446)
+    -- HL2/GMod: standard margins
+    if EHUD and EHUD.SetLayout then
+        local layout = theme.ehudLayout
+        if layout then
+            EHUD.SetLayout(layout.marginLeft, layout.marginRight, layout.baseYOffset, layout.colGap)
+        else
+            EHUD.SetLayout(16, 16, 48)  -- defaults
+        end
+    end
 
     -- Apply font sizes (with Post-GamepadUI patch if enabled)
     HL2Hud.ApplyFontPatch()

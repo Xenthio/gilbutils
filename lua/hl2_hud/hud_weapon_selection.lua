@@ -205,6 +205,9 @@ local function DoOpenSelection()
 end
 
 local function DoFadeOut()
+    -- Allow CSS (or other modes) to suppress the fade
+    local handled = hook.Run("HL2Hud_WeaponSelectionFade")
+    if handled then return end
     -- FadeOutWeaponSelectionMenu (delay 0.5, dur 1.0 → fades over 1s after 0.5s)
     aset(animFgColor,   Color(0,0,0,0), "Linear", 0.5, 1.0)
     aset(animTextColor, Color(0,0,0,0), "Linear", 0.5, 1.0)
@@ -470,12 +473,17 @@ hook.Add("HUDPaint", "HL2Hud_WeaponSelection", function()
     local ply = LocalPlayer()
     if not IsValid(ply) then return end
 
-    -- BUCKETS mode: pSelectedWeapon = GetSelectedWeapon() (our selectedWep)
     local pSel = selectedWep
     if not IsValid(pSel) then
         pSel = ply:GetActiveWeapon()
         if not IsValid(pSel) then return end
     end
+
+    -- Dispatch to mode-specific paint hook (e.g. CSS) — if it returns true, skip HL2 paint
+    local handled = hook.Run("HL2Hud_WeaponSelectionPaint",
+        animAlpha.cur, animSelAlpha.cur, pSel, ply,
+        animFgColor.cur, animTextColor.cur, animTextScan.cur)
+    if handled then return end
 
     local smallSize = Scale(SMALL)
     local largeWide = Scale(LWIDE)
@@ -611,8 +619,9 @@ end)
 
 -- Export for external use
 HL2Hud.weaponSel = {
-    open  = DoOpenSelection,
-    hide  = DoHideSelection,
-    fade  = DoFadeOut,
+    open      = DoOpenSelection,
+    hide      = DoHideSelection,
+    fade      = DoFadeOut,
+    iconChars = ICON_CHARS,
 }
 

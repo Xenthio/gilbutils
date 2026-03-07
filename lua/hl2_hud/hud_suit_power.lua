@@ -79,6 +79,10 @@ function elem:GetSize()
 end
 
 function elem:Draw(x, y, clip_h)
+    if HL2Hud.Themes and HL2Hud.ActiveTheme then
+        local t = HL2Hud.Themes[HL2Hud.ActiveTheme]
+        if t and t.weaponSelection == "css" then return end
+    end
     local ply = LocalPlayer()
     if not IsValid(ply) then return end
 

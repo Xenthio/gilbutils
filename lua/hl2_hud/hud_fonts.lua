@@ -130,6 +130,38 @@ local function makeFonts()
         font = "HL2cross", size = math.Round(quickSize * s),
         weight = 0, antialias = true, additive = true,
     })
+
+    -- CSS-specific fonts (gracefully no-ops if CSS is not mounted)
+    -- CSS HudNumbers = Counter-Strike font (Cstrike.ttf), same file as Icons
+    surface.CreateFont("CSS_Numbers", {
+        font = "Counter-Strike", size = math.Round(28 * s),
+        weight = 0, antialias = true, additive = true,
+    })
+    -- CSS HudNumbersSmall = Arial Bold 16
+    surface.CreateFont("CSS_NumbersSmall", {
+        font = "Arial", size = math.Round(16 * s),
+        weight = 1000, antialias = true, additive = true,
+    })
+    -- Icons font = "Counter-Strike" (Cstrike.ttf) — health/armor/ammo icons
+    surface.CreateFont("CSS_Icons", {
+        font = "Counter-Strike", size = math.Round(28 * s),
+        weight = 0, antialias = true, additive = true,
+    })
+    -- CSWeapons = weapon icons in CSS weapon selection
+    surface.CreateFont("CSS_Weapons", {
+        font = "CSWeapons", size = math.Round(28 * s),
+        weight = 0, antialias = true, additive = true,
+    })
+    -- CSTypeDeath = csd.ttf (shotgun shells, skull icons, kill icons), tall=42
+    surface.CreateFont("CSS_TypeDeath", {
+        font = "csd", size = math.Round(42 * s),
+        weight = 0, antialias = true, additive = true,
+    })
+    -- CSType = cs.ttf (grenade icons), tall=80
+    surface.CreateFont("CSS_Type", {
+        font = "cs", size = math.Round(80 * s),
+        weight = 0, antialias = true, additive = true,
+    })
 end
 
 hook.Add("OnScreenSizeChanged", "HL2Hud_Fonts", makeFonts)

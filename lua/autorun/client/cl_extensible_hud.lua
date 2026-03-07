@@ -39,6 +39,19 @@ EHUD.COL_GAP      = 22
 EHUD.STACK_GAP    = 6
 EHUD.CORNER       = 8
 EHUD.ANIM_TIME    = 0.4   -- seconds to slide in/out
+-- Theme-overridable layout: baseYOffset = distance from screen bottom to top of HUD row (480p units)
+EHUD.BASE_Y_OFFSET  = 48   -- default: scrH - 48*s
+EHUD.MARGIN_LEFT    = 16   -- left-column start margin
+EHUD.MARGIN_RIGHT   = 16   -- right-column end margin
+EHUD.COL_GAP        = 22   -- gap between adjacent columns (480p units)
+
+-- Called by HL2Hud.SetTheme to reconfigure layout for current theme
+function EHUD.SetLayout(marginLeft, marginRight, baseYOffset, colGap)
+    EHUD.MARGIN_LEFT   = marginLeft  or 16
+    EHUD.MARGIN_RIGHT  = marginRight or 16
+    EHUD.BASE_Y_OFFSET = baseYOffset or 48
+    EHUD.COL_GAP       = colGap      or 22
+end
 
 -- ---- Colors ----------------------------------------------------------------
 EHUD.COL = {
@@ -268,15 +281,17 @@ hook.Add("HUDPaint", "EHUD_Render", function()
     local dt   = FrameTime()
     local scrW = ScrW()
     local scrH = ScrH()
-    local baseY = scrH - (48 * s)   -- top of the standard 36-unit row
+    local baseY = scrH - (EHUD.BASE_Y_OFFSET * s)
     local margin = EHUD.MARGIN * s
+    local marginL = EHUD.MARGIN_LEFT  * s
+    local marginR = EHUD.MARGIN_RIGHT * s
     local gap    = EHUD.COL_GAP * s
     local stackGap = EHUD.STACK_GAP * s
 
     -- ------------------------------------------------------------------
     -- LEFT HSTACK
     -- ------------------------------------------------------------------
-    local cx = margin
+    local cx = marginL
     for _, col in ipairs(EHUD._left) do
         if col.check_visible() then
             local colW = col.width_base * s
@@ -316,7 +331,7 @@ hook.Add("HUDPaint", "EHUD_Render", function()
     -- ------------------------------------------------------------------
     -- RIGHT HSTACK
     -- ------------------------------------------------------------------
-    local rx = scrW - margin
+    local rx = scrW - marginR
     for _, col in ipairs(EHUD._right) do
         if col.check_visible() then
             local colW = col.width_base * s
@@ -336,7 +351,7 @@ hook.Add("HUDPaint", "EHUD_Render", function()
                 end
             elseif col.id == "ammo" then
                 local nativeW = EHUD.GetNativeAmmoWidth() * s
-                local target = nativeW > 0 and (nativeW - margin + gap) or 0
+                local target = nativeW > 0 and (nativeW - marginR + gap) or 0
                 local animated = animStep(col.anim_width, target, dt)
                 colW = animated - gap
             end
@@ -375,12 +390,12 @@ hook.Add("HUDPaint", "EHUD_Render", function()
     -- ------------------------------------------------------------------
     -- TOP-LEFT ZONE
     -- ------------------------------------------------------------------
-    local tly = margin
+    local tly = marginL
     for _, item in ipairs(EHUD._zones.topleft.list) do
         local w, tgtH = item.obj:GetSize()
         local curH = animStep(item.anim, tgtH, dt)
         if curH > 1 then
-            drawClipped(item.obj, margin, tly, curH)
+            drawClipped(item.obj, marginL, tly, curH)
             tly = tly + curH + stackGap
         end
     end
@@ -388,12 +403,12 @@ hook.Add("HUDPaint", "EHUD_Render", function()
     -- ------------------------------------------------------------------
     -- TOP-RIGHT ZONE
     -- ------------------------------------------------------------------
-    local try = margin
+    local try = marginR
     for _, item in ipairs(EHUD._zones.topright.list) do
         local w, tgtH = item.obj:GetSize()
         local curH = animStep(item.anim, tgtH, dt)
         if curH > 1 then
-            drawClipped(item.obj, scrW - margin - w, try, curH)
+            drawClipped(item.obj, scrW - marginR - w, try, curH)
             try = try + curH + stackGap
         end
     end
@@ -408,7 +423,11 @@ end)
 EHUD.RegisterLeftColumn("health", 102, nil, 10)
 EHUD.RegisterLeftColumn("suit", 108, function()
     local ply = LocalPlayer()
-    return IsValid(ply) and ply:Armor() > 0
+    if not IsValid(ply) then return false end
+    -- CSS always shows armor (even at 0); HL2 only shows when armor > 0
+    local layout = HL2Hud and HL2Hud.GetLayout and HL2Hud.GetLayout("battery")
+    if layout and layout.glow_font == false then return true end  -- CSS marker
+    return ply:Armor() > 0
 end, 20)
 EHUD.RegisterRightColumn("ammo", 102, nil, 10)
 
