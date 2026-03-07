@@ -268,25 +268,25 @@ hook.Add("PlayerBindPress", "HL2Hud_WeaponSelection", function(ply, bind, presse
         return true
     end
 
-    if bind == "invnext" then
-        local cur = isOpen and selectedWep or lply:GetActiveWeapon()
-        local next = IsValid(cur) and FindNextWeapon(lply, cur:GetSlot(), cur:GetSlotPos()) or nil
-        if not IsValid(next) then next = FindNextWeapon(lply, -1, -1) end
+    if bind == "invnext" or bind == "invprev" then
+        -- Physgun scroll (pull/push held object) fires invnext/invprev — suppress weapon selection
+        local activeWep = lply:GetActiveWeapon()
+        if IsValid(activeWep) and activeWep:GetClass() == "weapon_physgun" and lply:KeyDown(IN_ATTACK) then
+            return  -- let physgun consume the scroll
+        end
+
+        local cur = isOpen and selectedWep or activeWep
+        local next
+        if bind == "invnext" then
+            next = IsValid(cur) and FindNextWeapon(lply, cur:GetSlot(), cur:GetSlotPos()) or nil
+            if not IsValid(next) then next = FindNextWeapon(lply, -1, -1) end
+        else
+            next = IsValid(cur) and FindPrevWeapon(lply, cur:GetSlot(), cur:GetSlotPos()) or nil
+            if not IsValid(next) then next = FindPrevWeapon(lply, MAX_WEAPON_SLOTS, math.huge) end
+        end
         if IsValid(next) then
             if not isOpen then DoOpenSelection() end
             DoSelectWeapon(next)
-            LocalPlayer():EmitSound("common/wpn_moveselect.wav", 75, 100, 0.32)
-        end
-        return true
-    end
-
-    if bind == "invprev" then
-        local cur = isOpen and selectedWep or lply:GetActiveWeapon()
-        local prev = IsValid(cur) and FindPrevWeapon(lply, cur:GetSlot(), cur:GetSlotPos()) or nil
-        if not IsValid(prev) then prev = FindPrevWeapon(lply, MAX_WEAPON_SLOTS, math.huge) end
-        if IsValid(prev) then
-            if not isOpen then DoOpenSelection() end
-            DoSelectWeapon(prev)
             LocalPlayer():EmitSound("common/wpn_moveselect.wav", 75, 100, 0.32)
         end
         return true
