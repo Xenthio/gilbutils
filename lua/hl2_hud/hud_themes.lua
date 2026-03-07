@@ -116,7 +116,7 @@ HL2Hud.Themes = {
 HL2Hud.ThemeOrder = {
     "Garry's Mod",
     "Half-Life 2",
-    "Half-Life 2 (Post GamepadUI)",
+    "Half-Life 2 (Post Steam Deck Update)",
 }
 
 ------------------------------------------------------------------------
