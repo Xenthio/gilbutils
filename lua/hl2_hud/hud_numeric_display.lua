@@ -46,6 +46,7 @@ local function drawPanelBg(x, y, w, h, bg, layout)
         draw.RoundedBox(r, x, y, w, h, bg)
     else
         HL2Hud.DrawPanel(x, y, w, h, bg)
+    end
 end
 
 ------------------------------------------------------------------------
