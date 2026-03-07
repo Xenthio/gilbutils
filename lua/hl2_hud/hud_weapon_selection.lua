@@ -62,7 +62,7 @@ local animBlur     = make(0)
 local m_BoxColor      = C_BoxBg
 local m_EmptyBoxColor = C_EmptyBg
 local m_SelBoxColor   = C_SelectedBg
-local m_SelFgColor    = C_FgColor
+local m_SelFgColor    = C_FgColor  -- selected weapon: should use BrightFg (set via HL2Hud.Colors below)
 local m_NumberColor   = C_NumberFg
 local m_TextColor     = C_TextFg
 
@@ -599,7 +599,7 @@ hook.Add("HUDPaint", "HL2Hud_WeaponSelection_ColorSync", function()
     C_NumberFg = C.FgColor
     C_TextFg   = C.BrightFg
     C_FgColor  = C.FgColor
-    m_SelFgColor  = C.FgColor
+    m_SelFgColor  = C.BrightFg  -- selected weapon draws with BrightFg (source: CHudWeaponSelection)
     m_NumberColor = C.FgColor
     m_TextColor   = C.BrightFg
     -- Keep live color in animTextColor/animFgColor while selector is open
