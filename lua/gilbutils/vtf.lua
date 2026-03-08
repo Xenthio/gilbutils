@@ -94,10 +94,10 @@ end
 -- Apply one random RAM failure mode to a byte string.
 -- allData (optional): larger pool to borrow bytes from (data bleed mode).
 -- Returns new (corrupted) string.
-function GilbVTF.RamCorrupt(data, allData)
+function GilbVTF.RamCorrupt(data, allData, mode)
     local len = #data
     if len == 0 then return data end
-    local mode = math.random(1, 6)
+    local mode = mode or math.random(1, 6)
 
     if mode == 1 then
         -- STRIDE REPEAT: stuck address line replays the same memory row
