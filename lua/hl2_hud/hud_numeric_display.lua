@@ -208,6 +208,22 @@ function HL2Hud.DrawCSSAmmoIcon(cls, ix, iy, col)
 end
 
 ------------------------------------------------------------------------
+-- HL2Hud.MakeLayout(baseName, overrides)
+-- Copies a theme layout by name and applies overrides on top.
+-- Use this in custom EHUD elements so they inherit the active theme's
+-- fonts, panel style, icon system, etc., while setting their own label/icon.
+-- Example:
+--   local layout = HL2Hud.MakeLayout("health", { label = "SPEED" })
+------------------------------------------------------------------------
+function HL2Hud.MakeLayout(baseName, overrides)
+    local base = HL2Hud.GetLayout(baseName) or {}
+    local t = {}
+    for k, v in pairs(base) do t[k] = v end
+    for k, v in pairs(overrides or {}) do t[k] = v end
+    return t
+end
+
+------------------------------------------------------------------------
 -- COMPAT: HL2Hud.DrawNumericDisplay(x, y, label, value, state)
 -- Old API used by examples before the data-driven layout refactor.
 -- Maps to DrawElement with a synthetic HL2-style layout.
