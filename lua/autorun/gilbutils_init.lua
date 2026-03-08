@@ -16,6 +16,8 @@ if SERVER then
     AddCSLuaFile("hl2_hud/hud_weapon_selection.lua")
     AddCSLuaFile("hl2_hud/hud_weapon_sprites.lua")
     AddCSLuaFile("hl2_hud/hud_ammo.lua")
+    AddCSLuaFile("hl2_hud/hud_themes.lua")
+    AddCSLuaFile("hl2_hud/hud_weapon_selection_css.lua")
  
 
 end
