@@ -3,6 +3,7 @@ GilbUtils = GilbUtils or {}
 
 if SERVER then
     AddCSLuaFile("gilbutils/gibs.lua")
+    AddCSLuaFile("gilbutils/vtf.lua")
     AddCSLuaFile("autorun/client/cl_extensible_hud.lua")
     AddCSLuaFile("autorun/client/cl_hl2_hud.lua")
     AddCSLuaFile("hl2_hud/hud_anim.lua")
@@ -17,7 +18,7 @@ if SERVER then
     AddCSLuaFile("hl2_hud/hud_weapon_sprites.lua")
     AddCSLuaFile("hl2_hud/hud_ammo.lua")
     AddCSLuaFile("hl2_hud/hud_themes.lua")
-    AddCSLuaFile("hl2_hud/hud_weapon_selection_css.lua")
+    AddCSLuaFile("hl2_hud/hud_weapon_selection_css.lua") 
  
 
 end
