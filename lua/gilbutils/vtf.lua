@@ -92,14 +92,14 @@ end
 
 -- Apply one random RAM failure mode to a byte string.
 -- allData (optional): larger pool to borrow bytes from (data bleed mode).
--- Returns new (corrupted) string.
+-- Returns: newData, startByte, endByte (0-indexed byte range that changed)
 function GilbVTF.RamCorrupt(data, allData, mode)
     local len = #data
-    if len == 0 then return data end
+    if len == 0 then return data, 0, 0 end
     mode = mode or math.random(1, 6)
 
     if mode == 1 then
-        -- STRIDE REPEAT: stuck address line replays the same memory row
+        -- STRIDE REPEAT
         local stride = math.random(8, math.min(64, math.floor(len/4)))
         local srcOff = math.random(0, len-stride)
         local row    = data:sub(srcOff+1, srcOff+stride)
@@ -110,30 +110,31 @@ function GilbVTF.RamCorrupt(data, allData, mode)
             local chunk = math.min(stride, dstLen-pos)
             patch[#patch+1] = row:sub(1, chunk); pos = pos+chunk
         end
-        return data:sub(1,dstOff)..table.concat(patch)..data:sub(dstOff+dstLen+1)
+        return data:sub(1,dstOff)..table.concat(patch)..data:sub(dstOff+dstLen+1), dstOff, dstOff+dstLen-1
 
     elseif mode == 2 then
-        -- BIT FLIP REGION: stuck bit line flips same bit across a whole section
+        -- BIT FLIP REGION
         local mask   = math.random(1, 255)
         local dstOff = math.random(0, math.floor(len/2))
         local dstLen = math.min(math.random(math.floor(len/8), math.floor(len/2)), len-dstOff)
         local region = data:sub(dstOff+1, dstOff+dstLen)
         local out    = {}
         for i=1,#region do out[i]=string.char(bit.bxor(string.byte(region,i), mask)) end
-        return data:sub(1,dstOff)..table.concat(out)..data:sub(dstOff+dstLen+1)
+        return data:sub(1,dstOff)..table.concat(out)..data:sub(dstOff+dstLen+1), dstOff, dstOff+dstLen-1
 
     elseif mode == 3 then
-        -- DATA BLEED: wrong pointer reads adjacent allocation
+        -- DATA BLEED
         local pool   = allData or data
         local srcLen = math.random(math.floor(len/4), math.floor(len/2))
         local srcOff = math.random(0, math.max(0, #pool-srcLen))
         local bleed  = pool:sub(srcOff+1, srcOff+srcLen)
         local dstOff = math.random(0, len-1)
         local avail  = len-dstOff
-        return data:sub(1,dstOff)..bleed:sub(1,avail)..data:sub(dstOff+math.min(srcLen,avail)+1)
+        local written = math.min(srcLen, avail)
+        return data:sub(1,dstOff)..bleed:sub(1,avail)..data:sub(dstOff+written+1), dstOff, dstOff+written-1
 
     elseif mode == 4 then
-        -- XOR PATTERN: bus noise / electrical interference
+        -- XOR PATTERN
         local patLen = math.random(2, 8)
         local pat    = {}; for i=1,patLen do pat[i]=math.random(0,255) end
         local dstOff = math.random(0, math.floor(len/2))
@@ -143,19 +144,17 @@ function GilbVTF.RamCorrupt(data, allData, mode)
         for i=1,#region do
             out[i]=string.char(bit.bxor(string.byte(region,i), pat[(i-1)%patLen+1]))
         end
-        return data:sub(1,dstOff)..table.concat(out)..data:sub(dstOff+dstLen+1)
+        return data:sub(1,dstOff)..table.concat(out)..data:sub(dstOff+dstLen+1), dstOff, dstOff+dstLen-1
 
     elseif mode == 5 then
-        -- ZERO WIPE: DMA underrun / cleared allocation
+        -- ZERO WIPE
         local dstOff = math.random(0, math.floor(len*2/3))
         local dstLen = math.min(math.random(math.floor(len/16), math.floor(len/6)), len-dstOff)
-        return data:sub(1,dstOff)..string.rep("\0",dstLen)..data:sub(dstOff+dstLen+1)
+        return data:sub(1,dstOff)..string.rep("\0",dstLen)..data:sub(dstOff+dstLen+1), dstOff, dstOff+dstLen-1
 
     else
-        -- RANDOM SPRINKLE: scattered random bytes across the region
-        -- Simulates general DRAM cell decay / retention failure
-        local count  = math.random(math.floor(len/32), math.floor(len/4))
-        -- Build sorted list of positions to patch
+        -- RANDOM SPRINKLE
+        local count   = math.random(math.floor(len/32), math.floor(len/4))
         local pos_set = {}
         for _=1,count do pos_set[math.random(0,len-1)] = math.random(0,255) end
         local sorted = {}
@@ -171,6 +170,8 @@ function GilbVTF.RamCorrupt(data, allData, mode)
             end
         end
         out[#out+1] = data:sub(cur)
-        return table.concat(out)
+        local s0 = sorted[1] and sorted[1][1] or 0
+        local s1 = sorted[#sorted] and sorted[#sorted][1] or 0
+        return table.concat(out), s0, s1
     end
 end
