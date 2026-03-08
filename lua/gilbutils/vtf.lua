@@ -40,6 +40,7 @@ local function rgb565(lo, hi)
 end
 
 local function decodeBlock(s, isDXT5)
+
     local c = isDXT5 and 9 or 1
     local r0,g0,b0 = rgb565(string.byte(s,c),   string.byte(s,c+1))
     local r1,g1,b1 = rgb565(string.byte(s,c+2), string.byte(s,c+3))
@@ -61,6 +62,9 @@ local function decodeBlock(s, isDXT5)
     end
     return px
 end
+
+-- Public alias so examples can call GilbVTF.DecodeBlock directly
+GilbVTF.DecodeBlock = decodeBlock
 
 -- Decode raw DXT mip data → flat pixel table [1..w*h] = {r,g,b}
 function GilbVTF.DecodeMip(data, mw, mh, isDXT5)
