@@ -206,3 +206,21 @@ function HL2Hud.DrawCSSAmmoIcon(cls, ix, iy, col)
         end
     end
 end
+
+------------------------------------------------------------------------
+-- COMPAT: HL2Hud.DrawNumericDisplay(x, y, label, value, state)
+-- Old API used by examples before the data-driven layout refactor.
+-- Maps to DrawElement with a synthetic HL2-style layout.
+------------------------------------------------------------------------
+function HL2Hud.DrawNumericDisplay(x, y, label, value, state)
+    local layout = {
+        wide      = 102, tall      = 36,
+        panel     = "flat",
+        font      = "HL2Hud_Numbers",
+        glow_font = "HL2Hud_NumbersGlow",
+        digit_xpos = 50, digit_ypos = 2,
+        text_xpos  = 8,  text_ypos  = 20,
+        label     = label,
+    }
+    return HL2Hud.DrawElement(x, y, value, state, layout)
+end
