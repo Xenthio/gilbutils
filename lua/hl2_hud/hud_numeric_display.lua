@@ -55,10 +55,11 @@ end
 ------------------------------------------------------------------------
 local function paintNumbers(font, x, y, value, indent)
     surface.SetFont(font)
-    if indent then
+    local n = tonumber(value)
+    if indent and n then
         local cw = surface.GetTextSize("0")
-        if value < 100 then x = x + cw end
-        if value < 10  then x = x + cw end
+        if n < 100 then x = x + cw end
+        if n < 10  then x = x + cw end
     end
     surface.SetTextPos(x, y)
     surface.DrawText(tostring(value))
