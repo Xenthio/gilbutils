@@ -40,7 +40,6 @@ local function rgb565(lo, hi)
 end
 
 local function decodeBlock(s, isDXT5)
-
     local c = isDXT5 and 9 or 1
     local r0,g0,b0 = rgb565(string.byte(s,c),   string.byte(s,c+1))
     local r1,g1,b1 = rgb565(string.byte(s,c+2), string.byte(s,c+3))
@@ -97,7 +96,7 @@ end
 function GilbVTF.RamCorrupt(data, allData, mode)
     local len = #data
     if len == 0 then return data end
-    local mode = mode or math.random(1, 6)
+    mode = mode or math.random(1, 6)
 
     if mode == 1 then
         -- STRIDE REPEAT: stuck address line replays the same memory row
