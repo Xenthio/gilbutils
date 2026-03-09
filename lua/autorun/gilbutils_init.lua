@@ -4,6 +4,8 @@ GilbUtils = GilbUtils or {}
 if SERVER then
     AddCSLuaFile("gilbutils/gibs.lua")
     AddCSLuaFile("gilbutils/vtf.lua")
+    AddCSLuaFile("gilbutils/mat.lua")
+    AddCSLuaFile("gilbutils/mdl.lua")
     AddCSLuaFile("autorun/client/cl_extensible_hud.lua")
     AddCSLuaFile("autorun/client/cl_hl2_hud.lua")
     AddCSLuaFile("hl2_hud/hud_anim.lua")
