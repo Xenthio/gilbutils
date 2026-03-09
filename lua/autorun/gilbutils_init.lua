@@ -1,6 +1,11 @@
 -- GilbUtils autorun — loads all modules
 GilbUtils = GilbUtils or {}
 
+if CLIENT then
+    -- Registered early so it's available before any gilbutils module is included.
+    CreateClientConVar("gilbdata_force_mode", "0", true, false, "Force GilbData.Corrupt mode. Use a number (1-14), component names (e.g. 'vram gpu'), or 0 for random.")
+end
+
 if SERVER then
     AddCSLuaFile("gilbutils/gibs.lua")
     AddCSLuaFile("gilbutils/vtf.lua")
