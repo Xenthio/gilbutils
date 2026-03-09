@@ -26,5 +26,5 @@ end
 include("gilbutils/gibs.lua")
 
 -- ExtensibleHUD loads automatically via its own client autorun file
-if CLIENT then include("gilbutils/vtf_write_test.lua") end
+--if CLIENT then include("gilbutils/vtf_write_test.lua") end
 print("[GilbUtils] Loaded")
