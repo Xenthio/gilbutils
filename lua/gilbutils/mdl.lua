@@ -304,3 +304,70 @@ end
 function GilbMDL.WriteMDL(mdlData, filepath)
     file.Write(filepath, mdlData)
 end
+
+------------------------------------------------------------------------
+-- Material extraction
+------------------------------------------------------------------------
+
+-- GilbMDL.GetMaterials(mdlData) — extract material paths from an MDL file.
+-- Returns a list of full material paths (cdtexture prefix + texture name).
+-- These paths match what Material() expects (no "materials/" prefix, no extension).
+-- MDL header layout (Source engine, version 44/45/46/48/49):
+--   0x154 numtextures (int32), 0x158 textureindex (int32)
+--   0x15C numcdtextures (int32), 0x160 cdtextureindex (int32)
+-- Each texture entry is 64 bytes; first field is nameoffset (int32, relative to entry start).
+-- Each cdtexture entry is an int32 offset into the MDL data pointing to a path string.
+function GilbMDL.GetMaterials(mdlData)
+    if #mdlData < 0x164 or mdlData:sub(1,4) ~= "IDST" then return {} end
+
+    local numTex  = ru32(mdlData, 0x155)  -- Lua 1-indexed: 0x154+1
+    local texIdx  = ru32(mdlData, 0x159)
+    local numCD   = ru32(mdlData, 0x15D)
+    local cdIdx   = ru32(mdlData, 0x161)
+
+    -- Read cd (search path) prefixes
+    -- cdtextureindex points to array of int32 relative offsets.
+    -- Each int32 is relative FROM ITS OWN POSITION to the null-terminated string.
+    local cdPaths = {}
+    for i = 0, numCD - 1 do
+        local ptrOff = cdIdx + i * 4          -- absolute position of this int32
+        local relOff = ru32(mdlData, ptrOff + 1)  -- relative offset from ptrOff
+        local absOff = ptrOff + relOff        -- absolute string position
+        if absOff > 0 and absOff < #mdlData then
+            local chunk = mdlData:sub(absOff + 1, absOff + 128)
+            local nul   = chunk:find("\0", 1, true)
+            local s     = nul and chunk:sub(1, nul - 1) or chunk
+            if s and s ~= "" then
+                s = s:lower():gsub("\\", "/")
+                if s:sub(-1) ~= "/" then s = s .. "/" end
+                cdPaths[#cdPaths+1] = s
+            end
+        end
+    end
+    if #cdPaths == 0 then cdPaths = {""} end
+
+    -- Read texture names and combine with cd paths
+    local mats = {}
+    local seen = {}
+    for i = 0, numTex - 1 do
+        local entryOff  = texIdx + i * 64
+        local nameOff   = ru32(mdlData, entryOff + 1)
+        local nameStart = entryOff + nameOff + 1
+        if nameStart <= #mdlData then
+            local chunk = mdlData:sub(nameStart, nameStart + 127)
+            local nul   = chunk:find("\0", 1, true)
+            local name  = nul and chunk:sub(1, nul - 1) or chunk
+            if name and name ~= "" then
+                name = name:lower():gsub("\\", "/")
+                for _, cd in ipairs(cdPaths) do
+                    local full = cd .. name
+                    if not seen[full] then
+                        seen[full] = true
+                        mats[#mats+1] = full
+                    end
+                end
+            end
+        end
+    end
+    return mats
+end

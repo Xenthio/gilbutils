@@ -11,7 +11,12 @@ GilbVTF = GilbVTF or {}
 ------------------------------------------------------------------------
 
 -- Parse VTF header + extract largest mip raw bytes.
--- Returns: { mipData, width, height, isDXT5, fmt, vtf } or nil if unsupported.
+-- Supported formats:
+--   DXT1=13, DXT1_oneBitAlpha=14, DXT5=15 (block compressed)
+--   RGBA16161616F=12, RGBA8888=0, ABGR8888=1, BGR888=3,
+--   RGB888=2, BGRA8888=12... (raw uncompressed — treated as raw blob)
+-- Returns: { mipData, allMipData, headerSize, mipCount, width, height, isDXT5, isRaw, bytesPerPixel, fmt, vtf }
+-- or nil if format is unrecognised/unsupported.
 function GilbVTF.Parse(vtf)
     if #vtf < 64 or vtf:sub(1,3) ~= "VTF" then return nil end
     local function ru32(i)
@@ -19,21 +24,40 @@ function GilbVTF.Parse(vtf)
         return a + b*256 + c*65536 + d*16777216
     end
     local fmt        = ru32(53)
-    local mipCount   = string.byte(vtf, 57)  -- offset 56: mipCount (uint8)
+    local mipCount   = string.byte(vtf, 57)
     local width      = string.byte(vtf,17) + string.byte(vtf,18)*256
     local height     = string.byte(vtf,19) + string.byte(vtf,20)*256
-    local headerSize = ru32(13)  -- offset 12: headerSize field
-    -- DXT1=13, DXT1_oneBitAlpha=14, DXT5=15
-    if fmt ~= 13 and fmt ~= 14 and fmt ~= 15 then return nil end
-    local isDXT5  = (fmt == 15)
-    local bs      = isDXT5 and 16 or 8
-    local bw      = math.max(1, math.ceil(width  / 4))
-    local bh      = math.max(1, math.ceil(height / 4))
-    local mipSize = bw * bh * bs
-    local mipData = vtf:sub(#vtf - mipSize + 1)
-    -- allMipData: everything after the header (all mip levels, smallest→largest)
-    local allMipData = vtf:sub(headerSize + 1)
-    return { mipData=mipData, allMipData=allMipData, headerSize=headerSize, mipCount=mipCount, width=width, height=height, isDXT5=isDXT5, fmt=fmt, vtf=vtf }
+    local headerSize = ru32(13)
+
+    -- Block-compressed formats
+    local isDXT5 = (fmt == 15)
+    if fmt == 13 or fmt == 14 or fmt == 15 then
+        local bs      = isDXT5 and 16 or 8
+        local bw      = math.max(1, math.ceil(width  / 4))
+        local bh      = math.max(1, math.ceil(height / 4))
+        local mipSize = bw * bh * bs
+        local allMipData = vtf:sub(headerSize + 1)
+        local mipData    = vtf:sub(#vtf - mipSize + 1)
+        return { mipData=mipData, allMipData=allMipData, headerSize=headerSize, mipCount=mipCount,
+                 width=width, height=height, isDXT5=isDXT5, isRaw=false, fmt=fmt, vtf=vtf }
+    end
+
+    -- Raw/uncompressed formats — bytes per pixel:
+    --   0=RGBA8888(4), 1=ABGR8888(4), 2=RGB888(3), 3=BGR888(3),
+    --   12=RGBA16161616F(8), 16=BGRA8888(4), 17=BGRX8888(4)
+    local rawBpp = ({
+        [0]=4,[1]=4,[2]=3,[3]=3,[4]=3,[5]=4,
+        [12]=8,[16]=4,[17]=4,[24]=2,[25]=2,
+    })[fmt]
+    if rawBpp then
+        local mipSize    = width * height * rawBpp
+        local allMipData = vtf:sub(headerSize + 1)
+        local mipData    = vtf:sub(#vtf - mipSize + 1)
+        return { mipData=mipData, allMipData=allMipData, headerSize=headerSize, mipCount=mipCount,
+                 width=width, height=height, isDXT5=false, isRaw=true, bytesPerPixel=rawBpp, fmt=fmt, vtf=vtf }
+    end
+
+    return nil  -- unsupported format
 end
 
 -- Rebuild a VTF with replaced pixel data (all mips).
@@ -43,15 +67,20 @@ end
 
 -- Returns array of {offset, size} for each mip in allMipData (index 1 = smallest mip)
 function GilbVTF.MipOffsets(info)
-    local bs      = info.isDXT5 and 16 or 8
     local mipCount = info.mipCount or 1
-    local offsets = {}
-    local pos = 1
+    local offsets  = {}
+    local pos      = 1
     -- Mips stored smallest→largest
     for i = mipCount - 1, 0, -1 do
         local mw   = math.max(1, math.floor(info.width  / (2^i)))
         local mh   = math.max(1, math.floor(info.height / (2^i)))
-        local size = math.max(1, math.ceil(mw/4)) * math.max(1, math.ceil(mh/4)) * bs
+        local size
+        if info.isRaw then
+            size = mw * mh * (info.bytesPerPixel or 4)
+        else
+            local bs = info.isDXT5 and 16 or 8
+            size = math.max(1, math.ceil(mw/4)) * math.max(1, math.ceil(mh/4)) * bs
+        end
         table.insert(offsets, { offset=pos, size=size })
         pos = pos + size
     end
